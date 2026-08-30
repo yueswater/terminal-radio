@@ -9,6 +9,7 @@ from unittest.mock import patch
 from app.core.config import Settings, get_settings
 from app.enums import Band, HistoryEventType, PlaybackState
 from app.models import PlayerStatus
+from app.services.sleep_timer import SleepTimer
 
 
 class PlaybackModelTests(unittest.TestCase):
@@ -33,6 +34,28 @@ class PlaybackModelTests(unittest.TestCase):
         with patch.dict(os.environ, {"RADIO_AUTO_RECONNECT": "false"}):
             get_settings.cache_clear()
             self.assertFalse(get_settings().auto_reconnect)
+
+
+class SleepTimerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.now = 100.0
+        self.timer = SleepTimer(lambda: self.now)
+
+    def test_counts_down_and_expires(self) -> None:
+        self.timer.set_minutes(15)
+        self.now += 899
+        self.assertEqual(self.timer.remaining_seconds(), 1)
+        self.assertFalse(self.timer.expired())
+        self.now += 1
+        self.assertTrue(self.timer.expired())
+
+    def test_none_cancels_and_invalid_minutes_are_rejected(self) -> None:
+        self.timer.set_minutes(30)
+        self.timer.set_minutes(None)
+        self.assertIsNone(self.timer.remaining_seconds())
+        for value in (0, 1441):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.timer.set_minutes(value)
 
 
 if __name__ == "__main__":

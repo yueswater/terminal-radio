@@ -4,6 +4,7 @@ from app.services.catalog import StationCatalog
 from app.services.history import HistoryLog, StationSummary
 from app.services.player import MpvPlayer, Player
 from app.services.radio import RadioService, build_radio_service
+from app.services.sleep_timer import SleepTimer
 from app.services.transfer import (
     export_filename,
     find_config_files,
@@ -20,6 +21,7 @@ __all__ = [
     "Player",
     "RadioService",
     "StateStore",
+    "SleepTimer",
     "StationCatalog",
     "StationSummary",
     "ThemeRepository",
