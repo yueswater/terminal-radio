@@ -2,24 +2,9 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
-
 from pydantic import BaseModel, Field
 
-
-class Band(StrEnum):
-    """Broadcast band a station is transmitted on."""
-
-    FM = "FM"
-    AM = "AM"
-
-
-class PlaybackState(StrEnum):
-    """Lifecycle of the audio backend."""
-
-    STOPPED = "stopped"
-    PLAYING = "playing"
-    PAUSED = "paused"
+from app.enums import Band, PlaybackState
 
 
 class Station(BaseModel):
@@ -57,11 +42,17 @@ class PlayerStatus(BaseModel):
     volume: int = Field(default=100, ge=0, le=130)
     muted: bool = False
     device: str | None = Field(default=None, description="Audio output in use")
+    reconnect_attempt: int = Field(default=0, ge=0)
+    sleep_remaining_seconds: float | None = Field(default=None, ge=0)
 
     @property
     def is_playing(self) -> bool:
         """Return whether a stream is loaded, playing or paused."""
-        return self.state in (PlaybackState.PLAYING, PlaybackState.PAUSED)
+        return self.state in (
+            PlaybackState.PLAYING,
+            PlaybackState.PAUSED,
+            PlaybackState.RECONNECTING,
+        )
 
     @property
     def is_paused(self) -> bool:

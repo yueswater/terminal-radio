@@ -11,7 +11,8 @@ from textual.widgets import DataTable, ListItem, ListView, Static
 
 from app.core import about
 from app.core.i18n import Translator
-from app.models import PlaybackState, PlayerStatus, Station, Theme
+from app.enums import PlaybackState
+from app.models import PlayerStatus, Station, Theme
 from app.services import StationSummary
 from app.tui.formatting import (
     format_clock,

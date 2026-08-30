@@ -40,6 +40,7 @@ class Settings(BaseModel):
     history_limit: int = Field(default=200, gt=0)
     goodbye_seconds: float = Field(default=1.4, ge=0)
     autoplay_last_station: bool = True
+    auto_reconnect: bool = True
     # Off by default so interface changes stay immediate.
     enable_animations: bool = False
     api_host: str = "127.0.0.1"
@@ -98,6 +99,8 @@ def get_settings() -> Settings:
         overrides["goodbye_seconds"] = float(goodbye)
     if (autoplay := _env_flag(f"{ENV_PREFIX}AUTOPLAY_LAST_STATION")) is not None:
         overrides["autoplay_last_station"] = autoplay
+    if (reconnect := _env_flag(f"{ENV_PREFIX}AUTO_RECONNECT")) is not None:
+        overrides["auto_reconnect"] = reconnect
     if (animations := _env_flag(f"{ENV_PREFIX}ENABLE_ANIMATIONS")) is not None:
         overrides["enable_animations"] = animations
     if api_host := os.getenv(f"{ENV_PREFIX}API_HOST"):

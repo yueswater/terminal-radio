@@ -6,14 +6,8 @@ import time
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import StationNotFoundError
-from app.models import (
-    Band,
-    HistoryEvent,
-    HistoryEventType,
-    PlaybackState,
-    PlayerStatus,
-    Station,
-)
+from app.enums import Band, HistoryEventType, PlaybackState
+from app.models import HistoryEvent, PlayerStatus, Station
 from app.services.catalog import StationCatalog
 from app.services.history import HistoryLog, StationSummary, build_event
 from app.services.player import MpvPlayer, Player

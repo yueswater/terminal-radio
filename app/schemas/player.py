@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app.models import PlaybackState, PlayerStatus
+from app.enums import PlaybackState
+from app.models import PlayerStatus
 from app.schemas.station import StationRead
 
 
@@ -25,6 +26,8 @@ class PlayerStatusRead(BaseModel):
     volume: int = 100
     muted: bool = False
     device: str | None = None
+    reconnect_attempt: int = 0
+    sleep_remaining_seconds: float | None = None
 
     @classmethod
     def from_domain(cls, status: PlayerStatus) -> "PlayerStatusRead":
@@ -39,4 +42,6 @@ class PlayerStatusRead(BaseModel):
             volume=status.volume,
             muted=status.muted,
             device=status.device,
+            reconnect_attempt=status.reconnect_attempt,
+            sleep_remaining_seconds=status.sleep_remaining_seconds,
         )

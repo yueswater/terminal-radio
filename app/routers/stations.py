@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from app.dependencies import RadioServiceDep
-from app.models import Band
+from app.enums import Band
 from app.schemas import StationListRead, StationRead
 
 router = APIRouter(prefix="/stations", tags=["stations"])

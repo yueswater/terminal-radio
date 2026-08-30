@@ -15,7 +15,8 @@ from textual.widgets import Button, Static, TabbedContent, TabPane
 from app.core.config import Settings, get_settings
 from app.core.exceptions import RadioError
 from app.core.i18n import LocaleRepository, Translator
-from app.models import Band, Station
+from app.enums import Band
+from app.models import Station
 from app.services import (
     RadioService,
     ThemeRepository,

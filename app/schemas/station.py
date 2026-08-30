@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from app.models import Band, Station
+from app.enums import Band
+from app.models import Station
 
 
 class StationRead(BaseModel):

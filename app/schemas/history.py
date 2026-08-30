@@ -6,7 +6,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.models import HistoryEvent, HistoryEventType
+from app.enums import HistoryEventType
+from app.models import HistoryEvent
 from app.services.history import StationSummary
 
 

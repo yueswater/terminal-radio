@@ -9,7 +9,8 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from app.core.exceptions import CatalogError, StationNotFoundError
-from app.models import Band, Station
+from app.enums import Band
+from app.models import Station
 
 
 class StationCatalog:

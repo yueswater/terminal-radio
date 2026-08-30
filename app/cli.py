@@ -6,7 +6,7 @@ import argparse
 
 from app.core.about import get_version
 from app.core.config import Settings, get_settings
-from app.models import Band
+from app.enums import Band
 
 PROGRAM = "radio"
 

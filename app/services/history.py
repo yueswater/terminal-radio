@@ -9,7 +9,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
-from app.models import HistoryEvent, HistoryEventType, Station
+from app.enums import HistoryEventType
+from app.models import HistoryEvent, Station
 
 
 class StationSummary(BaseModel):

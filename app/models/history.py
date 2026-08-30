@@ -3,20 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
-
 from pydantic import BaseModel, Field
 
-
-class HistoryEventType(StrEnum):
-    """Kind of event appended to the history log."""
-
-    SESSION_STARTED = "session_started"
-    SESSION_ENDED = "session_ended"
-    PLAY_STARTED = "play_started"
-    PLAY_ENDED = "play_ended"
-    PAUSED = "paused"
-    RESUMED = "resumed"
+from app.enums import HistoryEventType
 
 
 class HistoryEvent(BaseModel):
