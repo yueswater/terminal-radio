@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rich.cells import cell_len
 from textual.widgets import Button, Input, Select, Static, TabbedContent, TabPane
 
 from app.core.config import Settings
@@ -124,10 +125,22 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
 
                 pane = app.query_one(f"#{STATISTICS_TAB}", TabPane)
                 panel = pane.query_one(ListeningStatsPanel)
-                report = str(panel.query_one("#statistics-report", Static).render())
+                report_widget = panel.query_one("#statistics-report", Static)
+                for _ in range(20):
+                    if report_widget.content_region.width > 0:
+                        break
+                    await pilot.pause()
+                self.assertGreater(report_widget.content_region.width, 0)
+                report = str(report_widget.render())
 
                 self.assertIn("聆聽統計", report)
                 self.assertIn(station.name[:8], report)
+                self.assertLessEqual(
+                    max(cell_len(line) for line in report.splitlines()),
+                    report_widget.content_region.width,
+                )
+                self.assertEqual(report_widget.styles.text_wrap, "nowrap")
+                self.assertEqual(panel.styles.scrollbar_size_vertical, 0)
                 self.assertEqual(pane.max_scroll_y, 0)
                 self.assertGreater(panel.max_scroll_y, 0)
 

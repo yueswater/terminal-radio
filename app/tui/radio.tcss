@@ -38,13 +38,16 @@ TabPane {
 
 #statistics {
     height: 1fr;
-    padding: 1 2;
+    padding: 1;
     overflow-y: auto;
+    scrollbar-size-vertical: 0;
 }
 
 #statistics-report {
-    width: 100%;
+    width: 1fr;
     height: auto;
+    min-height: 100%;
+    text-wrap: nowrap;
 }
 
 .table-action-spacer,

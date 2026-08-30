@@ -276,11 +276,16 @@ class ListeningStatsPanel(VerticalScroll):
     def _render_report(self) -> None:
         if not self.is_mounted or self._report is None:
             return
-        self.query_one("#statistics-report", Static).update(
+        report_widget = self.query_one("#statistics-report", Static)
+        report_width = (
+            report_widget.content_region.width or self.content_region.width
+        )
+        report_widget.update(
             render_listening_statistics(
                 self._report,
                 self.t,
-                width=max(self.size.width - 4, 40),
+                width=max(report_width, 32),
+                height=max(self.content_region.height, 20),
             )
         )
 
