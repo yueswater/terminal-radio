@@ -1,0 +1,339 @@
+# Station catalog. Every stream URL lives here, never in the code.
+# band must be FM or AM. It drives the tabs of the terminal UI.
+
+[[stations]]
+slug = "pbs-national"
+name = "警察廣播電臺 全國治安交通網"
+band = "FM"
+frequency = "104.9"
+description = "路況與治安即時資訊"
+url = "https://stream.pbs.gov.tw/live/PBS/playlist.m3u8"
+
+[[stations]]
+slug = "bcc-pop"
+name = "中廣流行網 i like radio"
+band = "FM"
+frequency = "103.3"
+description = "流行音樂與談話"
+url = "https://n03.rcs.revma.com/aw9uqyxy2tzuv"
+
+[[stations]]
+slug = "bcc-music"
+name = "中廣音樂網 i radio"
+band = "FM"
+frequency = "96.3"
+description = "全日音樂"
+url = "https://n03.rcs.revma.com/ndk05tyy2tzuv"
+
+[[stations]]
+slug = "hitfm-taipei"
+name = "Hit FM 台北之音"
+band = "FM"
+frequency = "107.7"
+description = "Hit FM 聯播網 台北"
+url = "http://202.39.43.67:1935/live/RA000036/chunklist.m3u8"
+
+[[stations]]
+slug = "uforadio"
+name = "飛碟電台"
+band = "FM"
+frequency = "92.1"
+description = "飛碟聯播網"
+url = "https://n10.rcs.revma.com/em90w4aeewzuv"
+
+[[stations]]
+slug = "news98"
+name = "九八新聞台"
+band = "FM"
+frequency = "98.1"
+description = "新聞與時事"
+url = "https://n17a-eu.rcs.revma.com/pntx1639ntzuv"
+
+[[stations]]
+slug = "icrt"
+name = "ICRT"
+band = "FM"
+frequency = "100.7"
+description = "English radio"
+url = "https://n27a-eu.rcs.revma.com/nkdfurztxp3vv"
+
+[[stations]]
+slug = "ic975"
+name = "IC 之音 竹科廣播"
+band = "FM"
+frequency = "97.5"
+description = "新竹科學園區"
+url = "http://n01a-eu.rcs.revma.com/7mnq8rt7k5zuv"
+
+[[stations]]
+slug = "taipei-fm"
+name = "臺北廣播電臺"
+band = "FM"
+frequency = "93.1"
+description = "臺北市政府"
+url = "https://stream.ginnet.cloud/live0130lo-yfyo/_definst_/fm/playlist.m3u8"
+
+[[stations]]
+slug = "goodfm-kaohsiung"
+name = "好事聯播網 港都電台"
+band = "FM"
+frequency = "98.3"
+description = "高雄"
+url = "http://202.39.43.67:1935/live/RA000012/chunklist.m3u8"
+
+[[stations]]
+slug = "mradio"
+name = "全國廣播 M Radio"
+band = "FM"
+frequency = "106.1"
+description = "台中"
+url = "https://n03.rcs.revma.com/044q61ha7a0uv"
+
+[[stations]]
+slug = "asiafm"
+name = "亞洲電台"
+band = "FM"
+frequency = "92.7"
+description = "AsiaFM"
+url = "https://n13.rcs.revma.com/xpgtqc74hv8uv"
+
+[[stations]]
+slug = "uni-radio"
+name = "環宇廣播電台"
+band = "FM"
+frequency = "96.7"
+description = "桃竹苗"
+url = "https://n06.rcs.revma.com/srn5f9kmwxhvv"
+
+[[stations]]
+slug = "formosa-voice"
+name = "寶島新聲廣播電台"
+band = "FM"
+frequency = "98.5"
+description = "台語新聞談話"
+url = "http://125.227.87.206:8000/FM98.5"
+
+[[stations]]
+slug = "shih-hsin-fm"
+name = "世新廣播電台"
+band = "FM"
+frequency = "88.1"
+description = "世新大學"
+url = "https://stream.ginnet.cloud/live0115lo-89xv/_definst_/fm881/playlist.m3u8"
+
+[[stations]]
+slug = "good-news"
+name = "佳音電台"
+band = "FM"
+frequency = "90.9"
+description = "音樂與生活"
+url = "https://stream.ginnet.cloud/live0119lo-p4rb/_definst_/fm909/playlist.m3u8"
+
+[[stations]]
+slug = "hakka-radio"
+name = "講客廣播電台"
+band = "FM"
+frequency = "105.9"
+description = "客語頻道"
+url = "https://n08.rcs.revma.com/akqrbx94gbkvv"
+
+[[stations]]
+slug = "new-hakka"
+name = "新客家廣播電台"
+band = "FM"
+frequency = "93.5"
+description = "客語頻道"
+url = "http://live.fm935newhakka.com.tw:5006/live"
+
+[[stations]]
+slug = "voh-fm"
+name = "漢聲廣播電臺 調頻網"
+band = "FM"
+frequency = "106.5"
+description = "國防部"
+url = "http://202.39.43.67:1935/live/RA000076/chunklist.m3u8"
+
+[[stations]]
+slug = "cheng-sheng-fm"
+name = "正聲廣播 台北調頻"
+band = "FM"
+frequency = "104.1"
+description = "正聲廣播公司"
+url = "https://flv.ccdntech.com/live/_definst_/mp4:vod117_Live/live1/playlist.m3u8"
+
+[[stations]]
+slug = "tun-radio"
+name = "台中廣播"
+band = "FM"
+frequency = "100.7"
+description = "TUN Radio"
+url = "http://211.20.119.101:8081/"
+
+[[stations]]
+slug = "city-fm"
+name = "城市廣播網"
+band = "FM"
+frequency = "92.9"
+description = "台中"
+url = "http://fm929.cityfm.tw:8080/929.mp3"
+
+[[stations]]
+slug = "classical-977"
+name = "台中古典音樂台"
+band = "FM"
+frequency = "97.7"
+description = "古典音樂"
+url = "http://onair.family977.com.tw:8000/live.mp3"
+
+[[stations]]
+slug = "pbs-taipei"
+name = "警察廣播電臺 臺北分臺"
+band = "FM"
+frequency = "94.3"
+url = "https://stream.pbs.gov.tw/live/TPS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-taichung"
+name = "警察廣播電臺 臺中分臺"
+band = "FM"
+frequency = "94.5"
+url = "https://stream.pbs.gov.tw/live/TCS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-kaohsiung"
+name = "警察廣播電臺 高雄分臺"
+band = "FM"
+frequency = "93.1"
+url = "https://stream.pbs.gov.tw/live/KSS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-yilan"
+name = "警察廣播電臺 宜蘭分臺"
+band = "FM"
+frequency = "101.3"
+url = "https://stream.pbs.gov.tw/live/ELS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-hualien"
+name = "警察廣播電臺 花蓮分臺"
+band = "FM"
+frequency = "94.3"
+url = "https://stream.pbs.gov.tw/live/HLS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-taitung"
+name = "警察廣播電臺 臺東分臺"
+band = "FM"
+frequency = "94.3"
+url = "https://stream.pbs.gov.tw/live/TTS/playlist.m3u8"
+
+[[stations]]
+slug = "bcc-news"
+name = "中廣新聞網"
+band = "AM"
+frequency = "648"
+description = "新聞頻道"
+url = "https://n03.rcs.revma.com/78fm9wyy2tzuv"
+
+[[stations]]
+slug = "taipei-am"
+name = "臺北廣播電臺"
+band = "AM"
+frequency = "1134"
+description = "臺北市政府"
+url = "https://stream.ginnet.cloud/live0130lo-yfyo/_definst_/am/playlist.m3u8"
+
+[[stations]]
+slug = "voh-am"
+name = "漢聲廣播電臺 中波網"
+band = "AM"
+frequency = "684"
+description = "國防部"
+url = "http://202.39.43.67:1935/live/RA000074/chunklist.m3u8"
+
+[[stations]]
+slug = "shih-hsin-am"
+name = "世新廣播電台"
+band = "AM"
+frequency = "729"
+description = "世新大學"
+url = "https://stream.ginnet.cloud/live0115lo-89xv/_definst_/am729/playlist.m3u8"
+
+[[stations]]
+slug = "min-pen-855"
+name = "民本電台"
+band = "AM"
+frequency = "855"
+url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am855/chunklist.m3u8"
+
+[[stations]]
+slug = "min-pen-1296"
+name = "民本電台"
+band = "AM"
+frequency = "1296"
+url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am1296/chunklist.m3u8"
+
+[[stations]]
+slug = "cheng-sheng-am"
+name = "正聲廣播 台北調幅"
+band = "AM"
+frequency = "819"
+url = "http://test.taiwan-radio.tw:8000/TP.AM819"
+
+[[stations]]
+slug = "btc-taipei"
+name = "台灣廣播 台北一台"
+band = "AM"
+frequency = "1323"
+url = "http://test.taiwan-radio.tw:8000/TP.AM1323"
+
+[[stations]]
+slug = "btc-taichung"
+name = "台灣廣播 台中台"
+band = "AM"
+frequency = "774"
+url = "http://test.taiwan-radio.tw:8000/TC.AM774"
+
+[[stations]]
+slug = "victory-voice"
+name = "勝利之聲廣播電台"
+band = "AM"
+frequency = "756"
+description = "屏東"
+url = "http://test.taiwan-radio.tw:8000/PH.AM756"
+
+[[stations]]
+slug = "kuo-sheng"
+name = "彰化國聲廣播電台"
+band = "AM"
+frequency = "1179"
+url = "http://test.taiwan-radio.tw:8000/CH.AM1179"
+
+[[stations]]
+slug = "chien-kuo"
+name = "台南建國廣播"
+band = "AM"
+frequency = "801"
+url = "http://test.taiwan-radio.tw:8000/TN.AM801"
+
+[[stations]]
+slug = "kbs-am"
+name = "高雄廣播電台"
+band = "AM"
+frequency = "1089"
+description = "高雄市政府"
+url = "https://n05.rcs.revma.com/4r99rt1g1bkvv"
+
+[[stations]]
+slug = "pbs-tainan"
+name = "警察廣播電臺 臺南分臺"
+band = "AM"
+frequency = "1314"
+url = "https://stream.pbs.gov.tw/live/TNS/playlist.m3u8"
+
+[[stations]]
+slug = "pbs-hsinchu"
+name = "警察廣播電臺 新竹分臺"
+band = "AM"
+frequency = "1512"
+url = "https://stream.pbs.gov.tw/live/SCS/playlist.m3u8"

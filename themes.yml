@@ -1,0 +1,187 @@
+# Color themes of the terminal UI. Cycle them at runtime with the t key.
+# Every key below maps onto a Textual theme field.
+
+default: sonic
+
+themes:
+  - name: sonic
+    dark: true
+    primary: "#3fb950"
+    secondary: "#2f81f7"
+    accent: "#d29922"
+    foreground: "#e6edf3"
+    background: "#0d1117"
+    surface: "#161b22"
+    panel: "#21262d"
+    success: "#3fb950"
+    warning: "#d29922"
+    error: "#f85149"
+
+  - name: midnight
+    dark: true
+    primary: "#7aa2f7"
+    secondary: "#bb9af7"
+    accent: "#7dcfff"
+    foreground: "#c0caf5"
+    background: "#1a1b26"
+    surface: "#24283b"
+    panel: "#292e42"
+    success: "#9ece6a"
+    warning: "#e0af68"
+    error: "#f7768e"
+
+  - name: gruvbox
+    dark: true
+    primary: "#b8bb26"
+    secondary: "#83a598"
+    accent: "#fabd2f"
+    foreground: "#ebdbb2"
+    background: "#282828"
+    surface: "#32302f"
+    panel: "#3c3836"
+    success: "#b8bb26"
+    warning: "#fabd2f"
+    error: "#fb4934"
+
+  - name: nord
+    dark: true
+    primary: "#88c0d0"
+    secondary: "#81a1c1"
+    accent: "#ebcb8b"
+    foreground: "#eceff4"
+    background: "#2e3440"
+    surface: "#3b4252"
+    panel: "#434c5e"
+    success: "#a3be8c"
+    warning: "#ebcb8b"
+    error: "#bf616a"
+
+  - name: paper
+    dark: false
+    primary: "#1f6feb"
+    secondary: "#8250df"
+    accent: "#bf8700"
+    foreground: "#1f2328"
+    background: "#ffffff"
+    surface: "#f6f8fa"
+    panel: "#eaeef2"
+    success: "#1a7f37"
+    warning: "#9a6700"
+    error: "#cf222e"
+
+  - name: dracula
+    dark: true
+    primary: "#bd93f9"
+    secondary: "#ff79c6"
+    accent: "#8be9fd"
+    foreground: "#f8f8f2"
+    background: "#282a36"
+    surface: "#343746"
+    panel: "#44475a"
+    success: "#50fa7b"
+    warning: "#f1fa8c"
+    error: "#ff5555"
+
+  - name: catppuccin
+    dark: true
+    primary: "#a6e3a1"
+    secondary: "#89b4fa"
+    accent: "#f9e2af"
+    foreground: "#cdd6f4"
+    background: "#1e1e2e"
+    surface: "#313244"
+    panel: "#45475a"
+    success: "#a6e3a1"
+    warning: "#fab387"
+    error: "#f38ba8"
+
+  - name: rose-pine
+    dark: true
+    primary: "#ebbcba"
+    secondary: "#c4a7e7"
+    accent: "#f6c177"
+    foreground: "#e0def4"
+    background: "#191724"
+    surface: "#1f1d2e"
+    panel: "#26233a"
+    success: "#9ccfd8"
+    warning: "#f6c177"
+    error: "#eb6f92"
+
+  - name: everforest
+    dark: true
+    primary: "#a7c080"
+    secondary: "#7fbbb3"
+    accent: "#dbbc7f"
+    foreground: "#d3c6aa"
+    background: "#2d353b"
+    surface: "#343f44"
+    panel: "#3d484d"
+    success: "#a7c080"
+    warning: "#dbbc7f"
+    error: "#e67e80"
+
+  - name: solarized-dark
+    dark: true
+    primary: "#268bd2"
+    secondary: "#2aa198"
+    accent: "#b58900"
+    foreground: "#93a1a1"
+    background: "#002b36"
+    surface: "#073642"
+    panel: "#0b4451"
+    success: "#859900"
+    warning: "#cb4b16"
+    error: "#dc322f"
+
+  - name: solarized-light
+    dark: false
+    primary: "#268bd2"
+    secondary: "#2aa198"
+    accent: "#b58900"
+    foreground: "#586e75"
+    background: "#fdf6e3"
+    surface: "#eee8d5"
+    panel: "#e3dcc4"
+    success: "#859900"
+    warning: "#cb4b16"
+    error: "#dc322f"
+
+  - name: monokai
+    dark: true
+    primary: "#a6e22e"
+    secondary: "#66d9ef"
+    accent: "#fd971f"
+    foreground: "#f8f8f2"
+    background: "#272822"
+    surface: "#31322c"
+    panel: "#3e3d32"
+    success: "#a6e22e"
+    warning: "#e6db74"
+    error: "#f92672"
+
+  - name: ayu-mirage
+    dark: true
+    primary: "#ffcc66"
+    secondary: "#73d0ff"
+    accent: "#f28779"
+    foreground: "#cccac2"
+    background: "#1f2430"
+    surface: "#242936"
+    panel: "#2d3444"
+    success: "#bae67e"
+    warning: "#ffd580"
+    error: "#f28779"
+
+  - name: latte
+    dark: false
+    primary: "#1e66f5"
+    secondary: "#8839ef"
+    accent: "#df8e1d"
+    foreground: "#4c4f69"
+    background: "#eff1f5"
+    surface: "#e6e9ef"
+    panel: "#dce0e8"
+    success: "#40a02b"
+    warning: "#fe640b"
+    error: "#d20f39"

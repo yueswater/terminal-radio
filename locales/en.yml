@@ -1,0 +1,121 @@
+# English interface strings. Station names and program titles are never
+# translated, they come from the catalog and from the stream metadata.
+
+code: en
+name: English
+
+messages:
+  tab.home: Home
+  tab.favorites: Favorites
+  tab.history: History
+  tab.themes: Themes
+  tab.settings: Settings
+  tab.about: About
+
+  key.tabs: Tabs
+  key.select: Select
+  key.pause: Pause
+  key.stop: Stop
+  key.favorite: Favorite
+  key.volume_up: Vol +
+  key.volume_down: Vol -
+  key.mute: Mute
+  key.theme: Theme
+  key.language: Language
+  key.quit: Quit
+
+  player.playing: LIVE
+  player.paused: PAUSED
+  player.stopped: STOPPED
+  player.no_station: No station
+  player.muted: MUT
+  player.volume: VOL
+
+  column.dial: Dial
+  column.station: Station
+  column.info: Info
+  column.plays: Plays
+  column.listened: Listened
+  column.paused: Paused
+  column.last_played: Last played
+  column.setting: Setting
+  column.value: Value
+  column.note: Notes
+
+  settings.autoplay: Autoplay
+  settings.theme: Theme
+  settings.animations: Animations
+  settings.language: Language
+  settings.volume: Volume
+  settings.refresh: Refresh
+  settings.history_limit: History cap
+  settings.player: Player
+  settings.stations_file: Stations
+  settings.themes_file: Themes
+  settings.locales_dir: Locales
+  settings.data_dir: Data
+
+  note.toggle: enter toggles
+  note.theme: enter cycles
+  note.animations: enter toggles
+  note.language: enter or w
+  note.volume: "+ and -"
+  note.env: ""
+
+  value.on: "on"
+  value.off: "off"
+
+  theme.dark: dark
+  theme.light: light
+  theme.current: current
+
+  notify.theme: "Theme: {name}"
+  notify.language: "Language: {name}"
+  notify.autoplay: "Autoplay {state}"
+  notify.animations: "Animations {state}"
+  notify.favorite_added: "Added {name} to favorites"
+  notify.favorite_removed: "Removed {name} from favorites"
+
+  history.clear: Clear listening history
+  confirm.clear_history: Clear all history?
+  confirm.accept: Confirm
+  confirm.cancel: Cancel
+  notify.history_cleared: History cleared
+  notify.history_clear_failed: Clear failed
+  settings.reset: Restore defaults
+  confirm.reset_settings: Restore defaults?
+  notify.settings_reset: Defaults restored
+
+  home.tagline: Terminal radio for Taiwan
+  home.hint: Arrow keys switch tabs, enter plays
+
+  goodbye.title: "See you~"
+  goodbye.listened: "Listened for {duration}"
+
+  about.built_with: Packages used
+  about.summary: Terminal radio player for Taiwanese FM and AM stations
+  about.homepage: Homepage
+  credit.textual: Terminal user interface toolkit
+  credit.fastapi: HTTP control API
+  credit.pydantic: Models and validation
+  credit.mpv: Audio backend, driven through its JSON IPC
+  credit.radio_browser: Source of the station stream URLs
+  key.export: Export
+  settings.export: Export
+  note.export: enter or e
+  export.title: Export the settings to
+  export.hint: enter saves, escape cancels
+  export.desktop: Desktop
+  export.documents: Documents
+  export.downloads: Downloads
+  export.home: Home folder
+  export.project: Project folder
+  export.data: Data folder
+  notify.exported: "Saved to {path}"
+  key.import: Import
+  settings.import: Import
+  note.import: enter or i
+  import.title: Import settings from
+  import.hint: enter loads, escape cancels
+  import.empty: No exported file found in the usual folders
+  notify.imported: "Loaded {name}"

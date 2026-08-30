@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="584" height="124"
+     viewBox="0 0 584 124" role="img" aria-labelledby="title desc">
+  <title id="title">Radio</title>
+  <desc id="desc">The Radio ASCII word mark in a colorful gradient.</desc>
+  <defs>
+    <linearGradient id="spectrum" gradientUnits="userSpaceOnUse"
+                    x1="12" y1="0" x2="572" y2="0">
+      <stop offset="0%" stop-color="#ff4d6d"/>
+      <stop offset="18%" stop-color="#ff9f1c"/>
+      <stop offset="36%" stop-color="#ffd60a"/>
+      <stop offset="54%" stop-color="#2ec4b6"/>
+      <stop offset="70%" stop-color="#00b4d8"/>
+      <stop offset="86%" stop-color="#4361ee"/>
+      <stop offset="100%" stop-color="#b5179e"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#spectrum)" shape-rendering="crispEdges">
+    <rect x="12" y="12" width="96" height="20"/>
+    <rect x="156" y="12" width="80" height="20"/>
+    <rect x="268" y="12" width="96" height="20"/>
+    <rect x="396" y="12" width="32" height="20"/>
+    <rect x="460" y="12" width="96" height="20"/>
+    <rect x="12" y="32" width="32" height="20"/>
+    <rect x="92" y="32" width="32" height="20"/>
+    <rect x="140" y="32" width="32" height="20"/>
+    <rect x="220" y="32" width="32" height="20"/>
+    <rect x="268" y="32" width="32" height="20"/>
+    <rect x="348" y="32" width="32" height="20"/>
+    <rect x="396" y="32" width="32" height="20"/>
+    <rect x="444" y="32" width="32" height="20"/>
+    <rect x="540" y="32" width="32" height="20"/>
+    <rect x="12" y="52" width="96" height="20"/>
+    <rect x="140" y="52" width="112" height="20"/>
+    <rect x="268" y="52" width="32" height="20"/>
+    <rect x="348" y="52" width="32" height="20"/>
+    <rect x="396" y="52" width="32" height="20"/>
+    <rect x="444" y="52" width="32" height="20"/>
+    <rect x="540" y="52" width="32" height="20"/>
+    <rect x="12" y="72" width="32" height="20"/>
+    <rect x="92" y="72" width="32" height="20"/>
+    <rect x="140" y="72" width="32" height="20"/>
+    <rect x="220" y="72" width="32" height="20"/>
+    <rect x="268" y="72" width="32" height="20"/>
+    <rect x="348" y="72" width="32" height="20"/>
+    <rect x="396" y="72" width="32" height="20"/>
+    <rect x="444" y="72" width="32" height="20"/>
+    <rect x="540" y="72" width="32" height="20"/>
+    <rect x="12" y="92" width="32" height="20"/>
+    <rect x="92" y="92" width="32" height="20"/>
+    <rect x="140" y="92" width="32" height="20"/>
+    <rect x="220" y="92" width="32" height="20"/>
+    <rect x="268" y="92" width="96" height="20"/>
+    <rect x="396" y="92" width="32" height="20"/>
+    <rect x="460" y="92" width="96" height="20"/>
+  </g>
+</svg>

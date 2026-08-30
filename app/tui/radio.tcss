@@ -1,0 +1,485 @@
+/* Layout of the radio terminal UI. Colors come from the themes file. */
+
+Screen {
+    background: $background;
+}
+
+#tabs {
+    height: 1fr;
+}
+
+Tabs {
+    height: 1;
+    background: $surface;
+}
+
+Tab {
+    text-style: bold;
+}
+
+Tab.-active {
+    background: $block-cursor-background;
+    color: $block-cursor-foreground;
+}
+
+Tabs Underline {
+    display: none;
+}
+
+TabPane {
+    padding: 0 1;
+}
+
+#tab-history, #tab-settings,
+.centered-table-shell {
+    overflow: hidden;
+}
+
+.table-action-spacer,
+#history-actions, #settings-actions {
+    height: 1;
+}
+
+.centered-table-shell {
+    height: 1fr;
+    align: center middle;
+}
+
+#history-actions, #settings-actions {
+    align-horizontal: right;
+}
+
+#clear-history, #reset-settings {
+    min-width: 18;
+}
+
+#history, #settings {
+    height: 25;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+Button.-style-default:focus,
+Button.-style-flat:focus {
+    text-style: bold;
+}
+
+/* Columns may run past the right edge. The mouse scrolls to them, the arrow
+   keys never do, and the bar is hidden so it cannot be read as a gauge. */
+DataTable {
+    height: 1fr;
+    background: $background;
+    overflow-x: auto;
+    scrollbar-size-horizontal: 0;
+}
+
+DataTable > .datatable--header {
+    background: $surface;
+    color: $text-muted;
+    text-style: none;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary 35%;
+    text-style: bold;
+}
+
+#now-playing {
+    height: 3;
+    padding: 0 2;
+    background: $surface;
+    border-top: solid $panel;
+    color: $text-muted;
+}
+
+#np-top, #np-bottom {
+    height: 1;
+}
+
+#np-state {
+    width: 11;
+    text-style: bold;
+    color: $text-disabled;
+    pointer: pointer;
+}
+
+#np-dial {
+    width: 12;
+    color: $accent;
+    text-style: bold;
+}
+
+#np-station {
+    width: 1fr;
+    color: $foreground;
+    text-style: bold;
+}
+
+#np-timer {
+    width: 18;
+    text-align: right;
+}
+
+#np-program {
+    width: 1fr;
+}
+
+#np-device {
+    width: 17;
+    text-align: right;
+    color: $text-muted;
+}
+
+#np-volume {
+    width: 22;
+    text-align: right;
+}
+
+#now-playing.playing #np-state {
+    color: $success;
+}
+
+#now-playing.paused #np-state {
+    color: $warning;
+}
+
+ConfirmationScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#confirm-dialog {
+    width: 64;
+    max-width: 90%;
+    height: auto;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#confirm-question {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+    text-align: center;
+    text-style: bold;
+}
+
+#confirm-actions {
+    width: 100%;
+    height: 3;
+    align-horizontal: center;
+}
+
+#confirm-actions Button {
+    min-width: 12;
+    margin: 0 1;
+}
+
+
+/* Notifications sit in the top right corner instead of the default bottom. */
+ToastRack {
+    dock: top;
+    align: right top;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+/* Themes page. Each card paints itself with the palette it previews. */
+ThemeGallery {
+    height: 1fr;
+    background: $background;
+    border: none;
+}
+
+ThemeCard {
+    height: 4;
+    padding: 0 1;
+    margin-bottom: 1;
+    border-left: thick $panel;
+}
+
+ThemeCard.-highlight {
+    border-left: thick $primary;
+}
+
+.theme-name {
+    text-style: bold;
+    padding: 0 1;
+}
+
+.theme-swatches {
+    height: 1;
+    padding-left: 1;
+}
+
+.swatch {
+    width: 9;
+    height: 1;
+    text-align: center;
+    text-style: bold;
+}
+
+/* About page. Centred like the home page. */
+/* The page scrolls, so it starts at the top rather than centring vertically. */
+AboutPanel {
+    height: 1fr;
+    align-horizontal: center;
+    padding: 1 2;
+    scrollbar-size-vertical: 1;
+}
+
+#about-title {
+    width: 100%;
+    margin-top: 1;
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+}
+
+#about-summary {
+    width: 100%;
+    text-align: center;
+    color: $foreground;
+}
+
+#about-copyright, #about-home {
+    width: 100%;
+    text-align: center;
+    color: $text-muted;
+}
+
+.about-heading {
+    width: 100%;
+    margin-top: 1;
+    text-align: center;
+    text-style: bold;
+    color: $foreground;
+}
+
+.about-credit {
+    width: 100%;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* Notifications sit in the top right corner instead of the default bottom. */
+ToastRack {
+    dock: top;
+    align: right top;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+/* Themes page. Each card paints itself with the palette it previews. */
+ThemeGallery {
+    height: 1fr;
+    background: $background;
+    border: none;
+}
+
+ThemeCard {
+    height: 4;
+    padding: 0 1;
+    margin-bottom: 1;
+    border-left: thick $panel;
+}
+
+ThemeCard.-highlight {
+    border-left: thick $primary;
+}
+
+.theme-name {
+    text-style: bold;
+    padding: 0 1;
+}
+
+.theme-swatches {
+    height: 1;
+    padding-left: 1;
+}
+
+.swatch {
+    width: 9;
+    height: 1;
+    text-align: center;
+    text-style: bold;
+}
+
+/* About page. */
+AboutPanel {
+    height: 1fr;
+    padding: 2 3;
+}
+
+#about-title {
+    text-style: bold;
+    color: $accent;
+}
+
+#about-summary {
+    color: $foreground;
+    margin-top: 1;
+}
+
+#about-copyright, #about-home {
+    color: $text-muted;
+}
+
+.about-heading {
+    margin-top: 1;
+    text-style: bold;
+    color: $foreground;
+}
+
+.about-credit {
+    color: $text-muted;
+}
+
+/* Key hints, drawn here instead of by Footer so they follow the language. */
+#hints {
+    height: 1;
+    padding: 0 2;
+    background: $surface;
+    color: $text-muted;
+}
+
+/* Home page. Everything is centred and follows the size of the terminal. */
+/* The block is centred in both directions, and still scrolls if it outgrows
+   a short terminal. */
+HomePanel {
+    height: 1fr;
+    align: center middle;
+    padding: 1 2;
+    scrollbar-size-vertical: 1;
+}
+
+.logo-line {
+    width: 100%;
+    text-align: center;
+    color: $primary;
+    text-style: bold;
+}
+
+#home-tagline {
+    width: 100%;
+    margin-top: 1;
+    text-align: center;
+    text-style: bold;
+    color: $foreground;
+}
+
+#home-hint {
+    width: 100%;
+    margin-top: 1;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* Farewell screen. */
+GoodbyeScreen {
+    align: center middle;
+    background: $background;
+}
+
+#goodbye {
+    width: 100%;
+    height: auto;
+    align: center middle;
+}
+
+#goodbye-logo {
+    margin-bottom: 1;
+}
+
+#goodbye-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+}
+
+#goodbye-listened {
+    width: 100%;
+    text-align: center;
+    color: $text-muted;
+}
+
+
+/* Size classes. A wider terminal gets more air and a larger word mark. */
+Screen.-wide TabPane {
+    padding: 1 3;
+}
+
+Screen.-wide #tab-history,
+Screen.-wide #tab-settings {
+    padding: 0 3;
+}
+
+Screen.-wide #now-playing {
+    height: 4;
+    padding: 1 3;
+}
+
+Screen.-wide HomePanel,
+Screen.-wide AboutPanel {
+    padding: 2 4;
+}
+
+Screen.-compact #np-dial {
+    width: 9;
+}
+
+Screen.-compact #np-device {
+    display: none;
+}
+
+Screen.-compact #hints {
+    text-align: center;
+}
+
+LogoBlock {
+    width: 100%;
+    height: auto;
+}
+
+/* Export and import pickers. */
+ExportScreen, ImportScreen {
+    align: center middle;
+}
+
+#export, #import {
+    width: 64;
+    height: auto;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#export-title, #import-title {
+    text-style: bold;
+    color: $foreground;
+}
+
+#export-filename {
+    color: $accent;
+    margin-bottom: 1;
+}
+
+#export-list, #import-list {
+    height: auto;
+    max-height: 12;
+    margin-top: 1;
+    background: $surface;
+    border: none;
+}
+
+#import-empty {
+    margin-top: 1;
+    color: $warning;
+}
+
+#export-hint, #import-hint {
+    margin-top: 1;
+    color: $text-muted;
+}

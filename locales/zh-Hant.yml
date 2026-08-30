@@ -1,0 +1,121 @@
+# Traditional Chinese interface strings. Station names and program titles are
+# never translated, they come from the catalog and from the stream metadata.
+
+code: zh-Hant
+name: 繁體中文
+
+messages:
+  tab.home: 首頁
+  tab.favorites: 我的最愛
+  tab.history: 收聽紀錄
+  tab.themes: 佈景主題
+  tab.settings: 設定
+  tab.about: 關於
+
+  key.tabs: 切換分頁
+  key.select: 選擇
+  key.pause: 暫停
+  key.stop: 停止
+  key.favorite: 最愛
+  key.volume_up: 音量 +
+  key.volume_down: 音量 -
+  key.mute: 靜音
+  key.theme: 主題
+  key.language: 語言
+  key.quit: 離開
+
+  player.playing: 播放中
+  player.paused: 已暫停
+  player.stopped: 已停止
+  player.no_station: 未選擇電台
+  player.muted: 靜音
+  player.volume: 音量
+
+  column.dial: 頻率
+  column.station: 電台
+  column.info: 說明
+  column.plays: 次數
+  column.listened: 收聽時間
+  column.paused: 暫停時間
+  column.last_played: 最後收聽
+  column.setting: 項目
+  column.value: 目前值
+  column.note: 說明
+
+  settings.autoplay: 自動播放
+  settings.theme: 主題
+  settings.animations: 動畫
+  settings.language: 語言
+  settings.volume: 音量
+  settings.refresh: 更新間隔
+  settings.history_limit: 紀錄上限
+  settings.player: 播放器
+  settings.stations_file: 電台清單
+  settings.themes_file: 主題檔
+  settings.locales_dir: 語言目錄
+  settings.data_dir: 資料目錄
+
+  note.toggle: enter 切換
+  note.theme: enter 輪播
+  note.animations: enter 切換
+  note.language: enter 或 w
+  note.volume: "+ 與 -"
+  note.env: ""
+
+  value.on: 開
+  value.off: 關
+
+  theme.dark: 深色
+  theme.light: 淺色
+  theme.current: 使用中
+
+  notify.theme: "佈景主題：{name}"
+  notify.language: "介面語言：{name}"
+  notify.autoplay: "啟動時自動播放：{state}"
+  notify.animations: "動畫效果：{state}"
+  notify.favorite_added: "已將 {name} 加入我的最愛"
+  notify.favorite_removed: "已將 {name} 移出我的最愛"
+
+  history.clear: 清除收聽紀錄
+  confirm.clear_history: 清除所有紀錄？
+  confirm.accept: 確認
+  confirm.cancel: 取消
+  notify.history_cleared: 紀錄已清除
+  notify.history_clear_failed: 清除失敗
+  settings.reset: 恢復預設
+  confirm.reset_settings: 恢復預設？
+  notify.settings_reset: 已恢復預設
+
+  home.tagline: 臺灣終端機收音機
+  home.hint: 用左右鍵切換分頁，Enter 播放
+
+  goodbye.title: "下次見～"
+  goodbye.listened: "本次收聽 {duration}"
+
+  about.built_with: 使用套件
+  about.summary: 台灣 FM 與 AM 電台的終端機收音機
+  about.homepage: 專案網址
+  credit.textual: 終端機介面框架
+  credit.fastapi: HTTP 控制 API
+  credit.pydantic: 資料模型與驗證
+  credit.mpv: 音訊後端，透過 JSON IPC 控制
+  credit.radio_browser: 電台串流網址來源
+  key.export: 匯出
+  settings.export: 匯出
+  note.export: enter 或 e
+  export.title: 將設定匯出到
+  export.hint: enter 儲存，escape 取消
+  export.desktop: 桌面
+  export.documents: 文件
+  export.downloads: 下載
+  export.home: 家目錄
+  export.project: 專案目錄
+  export.data: 資料目錄
+  notify.exported: "已匯出到 {path}"
+  key.import: 匯入
+  settings.import: 匯入
+  note.import: enter 或 i
+  import.title: 從這裡匯入設定
+  import.hint: enter 載入，escape 取消
+  import.empty: 常用資料夾裡找不到匯出檔
+  notify.imported: "已載入 {name}"
