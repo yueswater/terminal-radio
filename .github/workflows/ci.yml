@@ -38,22 +38,20 @@ jobs:
             Windows) choco install mpv --no-progress -y ;;
           esac
 
-      # choco unpacks mpv into a package directory rather than shimming it into
-      # one on PATH, and which directory that is has changed before. Finding the
-      # executable is steadier than naming its folder.
-      - name: Put mpv on PATH
+      # Naming the folder chocolatey chose has failed twice, and a Windows
+      # path added to PATH is not what the bash the tests run under expects.
+      # The player already takes its command from the environment, so it is
+      # pointed straight at the executable. Forward slashes survive shlex.
+      - name: Point the player at mpv
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $exe = Get-ChildItem C:\ProgramData\chocolatey -Recurse -Filter mpv.exe `
             -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "mpv.exe was not found under chocolatey" }
-          Write-Host "found $($exe.FullName)"
-          Add-Content -Path $env:GITHUB_PATH -Value $exe.DirectoryName
-
-      - name: Check mpv answers
-        shell: bash
-        run: mpv --version | head -1
+          $path = $exe.FullName -replace '\\', '/'
+          Write-Host "found $path"
+          Add-Content $env:GITHUB_ENV "RADIO_PLAYER_COMMAND=$path --no-video --no-terminal"
 
       - name: Run the test suite
         shell: bash
