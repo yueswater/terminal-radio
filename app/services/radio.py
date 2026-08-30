@@ -126,7 +126,9 @@ class RadioService:
 
     def custom_stations(self) -> tuple[Station, ...]:
         """Return user-defined stations in their saved order."""
-        return self._require_station_library().custom_stations
+        if self._station_library is None:
+            return ()
+        return self._station_library.custom_stations
 
     def add_custom_station(
         self,
@@ -416,6 +418,16 @@ class RadioService:
 
         self._state.save(merged)
         return merged
+
+    def apply_import(
+        self,
+        incoming: PersistedState,
+        custom_stations: tuple[Station, ...] | None,
+    ) -> PersistedState:
+        """Atomically validate custom stations before adopting imported preferences."""
+        if custom_stations is not None:
+            self._require_station_library().replace_custom(custom_stations)
+        return self.apply_preferences(incoming)
 
     def reset_settings(
         self,

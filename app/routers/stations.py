@@ -15,9 +15,13 @@ router = APIRouter(prefix="/stations", tags=["stations"])
 def list_stations(
     service: RadioServiceDep,
     band: Band | None = Query(default=None, description="Restrict to FM or AM"),
+    q: str | None = Query(default=None, description="Search station fields"),
 ) -> StationListRead:
     """Return every station of the catalog, optionally filtered by band."""
-    return StationListRead.from_domain(service.list_stations(band))
+    stations = service.search_stations(q) if q is not None else service.list_stations()
+    if band is not None:
+        stations = tuple(item for item in stations if item.band is band)
+    return StationListRead.from_domain(stations)
 
 
 @router.get("/{slug}", response_model=StationRead, summary="Get one station")

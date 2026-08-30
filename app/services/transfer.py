@@ -3,18 +3,29 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import datetime
+from collections.abc import Sequence
 from pathlib import Path
 
 from app.core.about import get_version
 from app.core.config import Settings
 from app.core.exceptions import RadioError
+from app.models import Station
 from pydantic import ValidationError
 
 from app.services.state import PersistedState
 
 FILE_SUFFIX = ".radio.config"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S_%f"
+
+
+@dataclass(frozen=True)
+class ImportedConfiguration:
+    """Validated portable preferences and optional custom stations."""
+
+    preferences: PersistedState
+    custom_stations: tuple[Station, ...] | None
 
 
 def export_filename(moment: datetime | None = None) -> str:
@@ -24,22 +35,32 @@ def export_filename(moment: datetime | None = None) -> str:
     return f"settings_{stamp}{FILE_SUFFIX}"
 
 
-def build_document(settings: Settings, state: PersistedState) -> dict[str, object]:
+def build_document(
+    settings: Settings,
+    state: PersistedState,
+    custom_stations: Sequence[Station] = (),
+) -> dict[str, object]:
     """Return the exported document, with the settings and the preferences."""
     return {
         "version": get_version(),
         "exported_at": datetime.now().astimezone().isoformat(timespec="milliseconds"),
         "settings": json.loads(settings.model_dump_json()),
         "preferences": json.loads(state.model_dump_json()),
+        "custom_stations": [
+            item.model_dump(mode="json") for item in custom_stations
+        ],
     }
 
 
 def write_export(
-    directory: Path, settings: Settings, state: PersistedState
+    directory: Path,
+    settings: Settings,
+    state: PersistedState,
+    custom_stations: Sequence[Station] = (),
 ) -> Path:
     """Write the export into the directory and return the file it created."""
     target = directory.expanduser() / export_filename()
-    document = build_document(settings, state)
+    document = build_document(settings, state, custom_stations)
 
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -74,6 +95,11 @@ def read_preferences(path: Path) -> PersistedState:
     program was configured when the file was written, and the paths and commands
     in it belong to the environment, not to the user.
     """
+    return read_export(path).preferences
+
+
+def read_export(path: Path) -> ImportedConfiguration:
+    """Read and validate preferences plus optional custom stations."""
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except OSError as error:
@@ -85,6 +111,20 @@ def read_preferences(path: Path) -> PersistedState:
         raise RadioError(f"Not a radio export: {path}")
 
     try:
-        return PersistedState(**document["preferences"])
+        preferences = PersistedState(**document["preferences"])
     except (TypeError, ValidationError) as error:
         raise RadioError(f"Invalid preferences in {path}") from error
+
+    if "custom_stations" not in document:
+        return ImportedConfiguration(preferences, None)
+    entries = document["custom_stations"]
+    if not isinstance(entries, list):
+        raise RadioError(f"Invalid custom stations in {path}")
+    try:
+        custom_stations = tuple(Station.model_validate(entry) for entry in entries)
+    except (TypeError, ValidationError) as error:
+        raise RadioError(f"Invalid custom stations in {path}") from error
+    slugs = [item.slug for item in custom_stations]
+    if len(slugs) != len(set(slugs)):
+        raise RadioError(f"Duplicate custom stations in {path}")
+    return ImportedConfiguration(preferences, custom_stations)

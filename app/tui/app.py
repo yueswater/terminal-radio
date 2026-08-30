@@ -22,7 +22,7 @@ from app.services import (
     ThemeRepository,
     build_radio_service,
     find_config_files,
-    read_preferences,
+    read_export,
     write_export,
 )
 from app.tui.formatting import format_duration, format_path
@@ -260,6 +260,16 @@ class RadioApp(App[None]):
         table = self.query_one("#stations-favorites", StationTable)
         favorites = self._service.favorites()
         table.set_stations(favorites, frozenset(item.slug for item in favorites))
+
+    def refresh_station_tables(self) -> None:
+        """Reload every band table after the station library changes."""
+        favorites = frozenset(item.slug for item in self._service.favorites())
+        for band in self._service.catalog.bands():
+            tables = self.query(f"#stations-{band.lower()}")
+            if tables:
+                tables.first().set_stations(
+                    self._service.list_stations(band), favorites
+                )
 
     def refresh_stars(self) -> None:
         """Redraw the favorite column of every station table."""
@@ -643,7 +653,10 @@ class RadioApp(App[None]):
             return
 
         try:
-            adopted = self._service.apply_preferences(read_preferences(path))
+            imported = read_export(path)
+            adopted = self._service.apply_import(
+                imported.preferences, imported.custom_stations
+            )
         except RadioError as error:
             self.notify(str(error), title=self.TITLE, severity="error")
             return
@@ -652,6 +665,7 @@ class RadioApp(App[None]):
         self.theme = resolve_theme_name(self._themes, adopted.theme_name)
         self.apply_locale(self._locales.translator(adopted.locale).code)
 
+        self.refresh_station_tables()
         self.refresh_favorites()
         self.refresh_stars()
         self.refresh_themes()
@@ -677,7 +691,12 @@ class RadioApp(App[None]):
             return
 
         try:
-            target = write_export(directory, self._settings, self._service.preferences())
+            target = write_export(
+                directory,
+                self._settings,
+                self._service.preferences(),
+                self._service.custom_stations(),
+            )
         except RadioError as error:
             self.notify(str(error), title=self.TITLE, severity="error")
             return
