@@ -38,14 +38,20 @@ jobs:
             Windows) choco install mpv --no-progress -y ;;
           esac
 
-      # choco unpacks mpv into its own package directory rather than shimming
-      # it, and the job's PATH was fixed before that directory existed.
+      # choco unpacks mpv into a package directory rather than shimming it into
+      # one on PATH, and which directory that is has changed before. Finding the
+      # executable is steadier than naming its folder.
       - name: Put mpv on PATH
         if: runner.os == 'Windows'
-        shell: bash
-        run: echo "C:\ProgramData\chocolatey\lib\mpvio.install\tools" >> "$GITHUB_PATH"
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem C:\ProgramData\chocolatey -Recurse -Filter mpv.exe `
+            -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "mpv.exe was not found under chocolatey" }
+          Write-Host "found $($exe.FullName)"
+          Add-Content -Path $env:GITHUB_PATH -Value $exe.DirectoryName
 
-      - name: Check mpv is reachable
+      - name: Check mpv answers
         shell: bash
         run: mpv --version | head -1
 
