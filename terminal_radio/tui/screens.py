@@ -69,7 +69,15 @@ class ConfirmationScreen(ModalScreen[bool]):
                 )
 
     def on_mount(self) -> None:
-        """Focus cancel so an accidental enter cannot confirm the action."""
+        """Focus cancel so an accidental enter cannot confirm the action.
+
+        The focus is taken after the next refresh, because on_mount can run
+        before compose has put the buttons on the screen.
+        """
+        self.call_after_refresh(self._focus_cancel)
+
+    def _focus_cancel(self) -> None:
+        """Put the keyboard on the safe button."""
         self.query_one("#confirm-cancel", Button).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

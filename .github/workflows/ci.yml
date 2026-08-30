@@ -38,6 +38,12 @@ jobs:
             Windows) choco install mpv --no-progress -y ;;
           esac
 
+      # choco puts its shims somewhere the job's PATH was fixed before knowing.
+      - name: Put mpv on PATH
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "C:\ProgramData\chocolatey\bin" >> "$GITHUB_PATH"
+
       - name: Run the test suite
         shell: bash
         run: uv run --python ${{ matrix.python }} python -m pytest tests -q

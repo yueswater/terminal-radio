@@ -383,7 +383,10 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 remaining = service.sleep_remaining_seconds()
                 self.assertIsNotNone(remaining)
                 self.assertGreater(remaining or 0, 899)
-                self.assertIn("14:59", str(table.get_cell("sleep_timer", "value")))
+                # A live countdown, so the exact second depends on the machine.
+                self.assertRegex(
+                    str(table.get_cell("sleep_timer", "value")), r"1[45]:\d{2}"
+                )
 
     async def test_custom_sleep_timer_rejects_invalid_minutes(self) -> None:
         """Custom sleep minutes stay in range and keep invalid input visible."""
