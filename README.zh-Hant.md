@@ -9,7 +9,7 @@
        alt="終端機畫面與 RADIO 字樣的彩色漸層 ASCII Logo">
 </p>
 
-![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-3fb950?style=flat-square&logo=apple&logoColor=white) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)
+![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-3fb950?style=flat-square) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)
 
 台灣電台的終端機播放器。Textual 介面和 FastAPI 控制 API 共用同一套服務。
 
@@ -34,13 +34,32 @@ sudo pacman -S mpv
 ## 安裝
 
 ```sh
-uv tool install git+https://github.com/yueswater/terminal-radio
+curl -LsSf https://raw.githubusercontent.com/yueswater/terminal-radio/main/install.sh | sh
 ```
 
-這會把 `radio` 指令裝進 PATH，在任何目錄都能執行，**不需要 clone**。
-用 `pipx install git+https://github.com/yueswater/terminal-radio` 效果相同。
+腳本會在缺少 uv 時先裝 uv，接著裝好 `radio` 指令；若你還沒有 mpv，它會告訴你該下哪一行。
+**不需要 clone**。
+
+想自己來的話：
+
+```sh
+uv tool install radiotui-tw
+# 或
+pipx install radiotui-tw
+```
 
 要移除時執行 `uv tool uninstall radiotui-tw`。
+
+### Windows
+
+安裝腳本是給 macOS 與 Linux 的 shell 用的。Windows 上直接裝這兩個：
+
+```powershell
+winget install mpv
+uv tool install radiotui-tw
+```
+
+在 Windows 上播放器透過具名管道與 mpv 溝通，其他平台則是 socket。
 
 ### 開發用
 
