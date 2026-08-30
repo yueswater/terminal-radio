@@ -1,5 +1,5 @@
 [project]
-name = "terminal-radio"
+name = "radiotui-tw"
 version = "0.1.0"
 description = "Terminal radio player for Taiwanese FM and AM stations, with a Textual UI and a FastAPI control API"
 readme = "README.md"

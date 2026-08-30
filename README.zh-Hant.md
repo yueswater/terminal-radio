@@ -40,7 +40,7 @@ uv tool install git+https://github.com/yueswater/terminal-radio
 這會把 `radio` 指令裝進 PATH，在任何目錄都能執行，**不需要 clone**。
 用 `pipx install git+https://github.com/yueswater/terminal-radio` 效果相同。
 
-要移除時執行 `uv tool uninstall terminal-radio`。
+要移除時執行 `uv tool uninstall radiotui-tw`。
 
 ### 開發用
 

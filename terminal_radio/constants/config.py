@@ -17,6 +17,9 @@ from pathlib import Path
 
 from platformdirs import user_config_dir, user_state_dir
 
+# The application name, which owns the state and config directories. It is
+# deliberately not the distribution name: renaming the project on an index
+# must not orphan a listener's history.
 APP_NAME = "terminal-radio"
 
 PACKAGE_DIR = Path(__file__).resolve().parent.parent

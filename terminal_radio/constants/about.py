@@ -1,6 +1,6 @@
 """Project identity and credit constants."""
 
-DISTRIBUTION = "terminal-radio"
+DISTRIBUTION = "radiotui-tw"
 COMMAND = "radio"
 DISPLAY_NAME = "Terminal Radio"
 AUTHOR = "Anthony Sung"

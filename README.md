@@ -41,7 +41,7 @@ This puts the `radio` command on PATH, so it runs from any directory. No clone
 needed. `pipx install git+https://github.com/yueswater/terminal-radio` works the
 same way.
 
-To remove it, run `uv tool uninstall terminal-radio`.
+To remove it, run `uv tool uninstall radiotui-tw`.
 
 ### Working on the project
 
