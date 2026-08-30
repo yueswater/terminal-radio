@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from rich.cells import cell_len, set_cell_size
+from rich.text import Text
 
 from app.constants.analytics import (
     BAR_GLYPH,
@@ -13,6 +14,8 @@ from app.constants.analytics import (
     RANKING_SLOT_MAX_WIDTH,
     STATS_PANEL_BREAKPOINT,
     STATS_PANEL_GAP,
+    STATISTICS_HEADING_KEYS,
+    THIN_AXIS_GLYPH,
     VERTICAL_BAR_MAX_WIDTH,
     VERTICAL_CHART_MAX_HEIGHT,
     VERTICAL_CHART_MIN_HEIGHT,
@@ -22,6 +25,17 @@ from app.services import ListeningStatistics
 from app.tui.formatting import format_clock
 
 ChartItem = tuple[str, float]
+
+
+def style_statistics_headings(report: str, translator: Translator) -> Text:
+    """Return the literal report with only its localized headings in bold."""
+    styled = Text(report)
+    for key in STATISTICS_HEADING_KEYS:
+        heading = translator(key)
+        start = report.find(heading)
+        if start >= 0:
+            styled.stylize("bold", start, start + len(heading))
+    return styled
 
 
 def render_listening_statistics(
@@ -198,6 +212,7 @@ def _vertical_chart(
             block = BAR_GLYPH * bar_width if filled >= level else ""
             segments.append(_center(block, slot))
         rows.append((" " * left_padding + "".join(segments)).rstrip())
+    rows.append(" " * left_padding + THIN_AXIS_GLYPH * chart_width)
     rows.append(
         (" " * left_padding + "".join(
             _center(label, slot)

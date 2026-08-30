@@ -31,7 +31,7 @@ from app.tui.formatting import (
     format_volume,
     truncate,
 )
-from app.tui.statistics import render_listening_statistics
+from app.tui.statistics import render_listening_statistics, style_statistics_headings
 
 def scale_ascii(lines: tuple[str, ...], factor: int) -> tuple[str, ...]:
     """Return the art enlarged by repeating each cell and each row."""
@@ -280,14 +280,13 @@ class ListeningStatsPanel(VerticalScroll):
         report_width = (
             report_widget.content_region.width or self.content_region.width
         )
-        report_widget.update(
-            render_listening_statistics(
-                self._report,
-                self.t,
-                width=max(report_width, 32),
-                height=max(self.content_region.height, 20),
-            )
+        report = render_listening_statistics(
+            self._report,
+            self.t,
+            width=max(report_width, 32),
+            height=max(self.content_region.height, 20),
         )
+        report_widget.update(style_statistics_headings(report, self.t))
 
 
 class SettingsTable(NavigableTable):

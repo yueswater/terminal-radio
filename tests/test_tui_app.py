@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from rich.cells import cell_len
+from textual.content import Content
 from textual.widgets import Button, Input, Select, Static, TabbedContent, TabPane
 
 from app.core.config import Settings
@@ -131,11 +132,26 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                         break
                     await pilot.pause()
                 self.assertGreater(report_widget.content_region.width, 0)
-                report = str(report_widget.render())
+                rendered_report = report_widget.render()
+                self.assertIsInstance(rendered_report, Content)
+                report = str(rendered_report)
 
                 self.assertIn("聆聽統計", report)
                 self.assertIn("警廣全國網", report)
                 self.assertNotIn(station.name, report)
+                for heading in (
+                    "聆聽統計",
+                    "最常聽前十名",
+                    "近 14 天趨勢",
+                    "每週收聽分布",
+                    "時段分布",
+                    "波段占比",
+                ):
+                    offset = rendered_report.plain.index(heading)
+                    self.assertTrue(
+                        rendered_report.get_style_at_offset(offset).bold,
+                        f"{heading} should be bold",
+                    )
                 self.assertLessEqual(
                     max(cell_len(line) for line in report.splitlines()),
                     report_widget.content_region.width,

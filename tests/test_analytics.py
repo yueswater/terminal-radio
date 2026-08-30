@@ -214,6 +214,14 @@ class ListeningStatisticsTests(unittest.TestCase):
         self.assertNotRegex(rendered, "[▁▂▃▄▅▆▇]")
         for frame_character in "┌┐└┘┄┆":
             self.assertNotIn(frame_character, rendered)
+        axis_segments = [
+            segment
+            for line in lines
+            for segment in line.split()
+            if "─" in segment
+        ]
+        self.assertEqual(len(axis_segments), 5)
+        self.assertTrue(all(set(segment) == {"─"} for segment in axis_segments))
         self.assertNotIn("01 Alpha", rendered)
         self.assertNotIn("02 Bravo", rendered)
         self.assertEqual(rendered.count("Alpha"), 1)
