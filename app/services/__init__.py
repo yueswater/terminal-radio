@@ -1,8 +1,14 @@
 """Business logic: catalog access, audio backends, history and use cases."""
 
+from app.services.analytics import (
+    DailyListening,
+    ListeningStatistics,
+    build_listening_statistics,
+)
 from app.services.catalog import StationCatalog
 from app.services.custom_stations import CustomStationStore
 from app.services.history import HistoryLog, StationSummary
+from app.services.history_csv import history_csv_filename, write_history_csv
 from app.services.player import MpvPlayer, Player
 from app.services.radio import RadioService, build_radio_service
 from app.services.reconnect import ReconnectSchedule
@@ -22,12 +28,15 @@ from app.services.themes import ThemeRepository
 
 __all__ = [
     "HistoryLog",
+    "history_csv_filename",
+    "DailyListening",
     "ImportedConfiguration",
     "CustomStationStore",
     "MpvPlayer",
     "PersistedState",
     "Player",
     "RadioService",
+    "ListeningStatistics",
     "ReconnectSchedule",
     "StateStore",
     "SleepTimer",
@@ -38,9 +47,11 @@ __all__ = [
     "StationSummary",
     "ThemeRepository",
     "build_radio_service",
+    "build_listening_statistics",
     "export_filename",
     "find_config_files",
     "read_preferences",
     "read_export",
     "write_export",
+    "write_history_csv",
 ]

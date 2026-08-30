@@ -8,6 +8,7 @@ messages:
   tab.home: 首頁
   tab.favorites: 我的最愛
   tab.history: 收聽紀錄
+  tab.statistics: 聆聽統計
   tab.themes: 佈景主題
   tab.settings: 設定
   tab.about: 關於
@@ -22,6 +23,9 @@ messages:
   key.mute: 靜音
   key.theme: 主題
   key.language: 語言
+  key.move: 移動游標
+  key.search: 搜尋電台
+  key.help: 快捷鍵說明
   key.quit: 離開
 
   player.playing: 播放中
@@ -36,6 +40,7 @@ messages:
   column.dial: 頻率
   column.station: 電台
   column.info: 說明
+  column.health: 狀態
   column.plays: 次數
   column.listened: 收聽時間
   column.paused: 暫停時間
@@ -47,6 +52,10 @@ messages:
   settings.autoplay: 自動播放
   settings.reconnect: 斷線重連
   settings.sleep_timer: 睡眠計時
+  settings.health_auto: 自動檢查電台
+  settings.health_check_all: 立即檢查所有電台
+  settings.custom_stations: 自訂電台
+  settings.shortcuts: 鍵盤快捷鍵
   settings.theme: 主題
   settings.animations: 動畫
   settings.language: 語言
@@ -61,6 +70,9 @@ messages:
 
   note.toggle: enter 切換
   note.sleep_timer: enter 設定
+  note.health_check_all: enter 檢查
+  note.custom_stations: enter 管理
+  note.shortcuts: enter 或 ?
   note.theme: enter 輪播
   note.animations: enter 切換
   note.language: enter 或 w
@@ -80,11 +92,67 @@ messages:
   notify.reconnect: "斷線重連：{state}"
   notify.sleep_set: "{minutes} 分鐘後停止"
   notify.sleep_off: 已關閉睡眠計時
+  notify.health_auto: "自動檢查電台：{state}"
+  notify.health_started: 正在檢查電台…
+  notify.health_empty: 沒有可檢查的電台
+  notify.health_complete: "正常 {online} · 緩慢 {slow} · 離線 {offline}"
+
+  search.title: 搜尋電台
+  search.placeholder: 頻率、電台、說明或波段
+  search.hint: Enter 播放 · Escape 關閉
+
+  help.title: 鍵盤快捷鍵
+  help.close: Escape 關閉
+
+  custom.manager_title: 自訂電台
+  custom.add_title: 新增電台
+  custom.edit_title: 編輯電台
+  custom.add: 新增
+  custom.edit: 編輯
+  custom.delete: 刪除
+  custom.close: 關閉
+  custom.save: 儲存
+  custom.name: 名稱
+  custom.band: 波段
+  custom.frequency: 頻率（選填）
+  custom.url: 串流網址
+  custom.description: 說明（選填）
+  custom.invalid: 請檢查名稱、網址與欄位長度
+  confirm.delete_station: 刪除此電台？
+  notify.custom_added: "已新增 {name}"
+  notify.custom_updated: "已更新 {name}"
+  notify.custom_deleted: "已刪除 {name}"
   notify.animations: "動畫效果：{state}"
   notify.favorite_added: "已將 {name} 加入我的最愛"
   notify.favorite_removed: "已將 {name} 移出我的最愛"
 
   history.clear: 清除收聽紀錄
+  history.export: 匯出 CSV
+  history.export_title: 將收聽紀錄匯出到
+  notify.history_exported: "紀錄已匯出到 {path}"
+  stats.title: 聆聽統計
+  stats.no_data: 還沒有完成的收聽紀錄
+  stats.total: 總收聽
+  stats.plays: 播放次數
+  stats.active_days: 收聽天數
+  stats.longest: 最長單次
+  stats.average: 平均單次
+  stats.top_stations: 最常聽前十名
+  stats.trend: 近 14 天趨勢
+  stats.weekdays: 每週收聽分布
+  stats.dayparts: 時段分布
+  stats.bands: 波段占比
+  stats.weekday.mon: 一
+  stats.weekday.tue: 二
+  stats.weekday.wed: 三
+  stats.weekday.thu: 四
+  stats.weekday.fri: 五
+  stats.weekday.sat: 六
+  stats.weekday.sun: 日
+  stats.daypart.morning: 早晨
+  stats.daypart.afternoon: 下午
+  stats.daypart.evening: 晚間
+  stats.daypart.night: 深夜
   confirm.clear_history: 清除所有紀錄？
   confirm.accept: 確認
   confirm.cancel: 取消

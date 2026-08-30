@@ -8,6 +8,7 @@ messages:
   tab.home: Home
   tab.favorites: Favorites
   tab.history: History
+  tab.statistics: Statistics
   tab.themes: Themes
   tab.settings: Settings
   tab.about: About
@@ -22,6 +23,9 @@ messages:
   key.mute: Mute
   key.theme: Theme
   key.language: Language
+  key.move: Move
+  key.search: Search stations
+  key.help: Shortcut help
   key.quit: Quit
 
   player.playing: LIVE
@@ -36,6 +40,7 @@ messages:
   column.dial: Dial
   column.station: Station
   column.info: Info
+  column.health: Health
   column.plays: Plays
   column.listened: Listened
   column.paused: Paused
@@ -47,6 +52,10 @@ messages:
   settings.autoplay: Autoplay
   settings.reconnect: Auto reconnect
   settings.sleep_timer: Sleep timer
+  settings.health_auto: Automatic station check
+  settings.health_check_all: Check all stations now
+  settings.custom_stations: Custom stations
+  settings.shortcuts: Keyboard shortcuts
   settings.theme: Theme
   settings.animations: Animations
   settings.language: Language
@@ -61,6 +70,9 @@ messages:
 
   note.toggle: enter toggles
   note.sleep_timer: enter sets
+  note.health_check_all: enter checks
+  note.custom_stations: enter manages
+  note.shortcuts: enter or ?
   note.theme: enter cycles
   note.animations: enter toggles
   note.language: enter or w
@@ -80,11 +92,67 @@ messages:
   notify.reconnect: "Auto reconnect {state}"
   notify.sleep_set: "Stops in {minutes} min"
   notify.sleep_off: Sleep timer off
+  notify.health_auto: "Automatic station check {state}"
+  notify.health_started: Checking stations…
+  notify.health_empty: No stations to check
+  notify.health_complete: "Online {online} · Slow {slow} · Offline {offline}"
+
+  search.title: Search stations
+  search.placeholder: Dial, station, description, or band
+  search.hint: Enter plays · Escape closes
+
+  help.title: Keyboard shortcuts
+  help.close: Escape closes
+
+  custom.manager_title: Custom stations
+  custom.add_title: Add station
+  custom.edit_title: Edit station
+  custom.add: Add
+  custom.edit: Edit
+  custom.delete: Delete
+  custom.close: Close
+  custom.save: Save
+  custom.name: Name
+  custom.band: Band
+  custom.frequency: Frequency (optional)
+  custom.url: Stream URL
+  custom.description: Description (optional)
+  custom.invalid: Check the name, URL, and field lengths
+  confirm.delete_station: Delete this station?
+  notify.custom_added: "Added {name}"
+  notify.custom_updated: "Updated {name}"
+  notify.custom_deleted: "Deleted {name}"
   notify.animations: "Animations {state}"
   notify.favorite_added: "Added {name} to favorites"
   notify.favorite_removed: "Removed {name} from favorites"
 
   history.clear: Clear listening history
+  history.export: Export CSV
+  history.export_title: Export listening history to
+  notify.history_exported: "History saved to {path}"
+  stats.title: Listening statistics
+  stats.no_data: No completed listening sessions yet
+  stats.total: Total
+  stats.plays: Plays
+  stats.active_days: Active days
+  stats.longest: Longest session
+  stats.average: Average session
+  stats.top_stations: Top 10 stations
+  stats.trend: 14-day trend
+  stats.weekdays: Listening by weekday
+  stats.dayparts: Listening by time of day
+  stats.bands: Band share
+  stats.weekday.mon: Mon
+  stats.weekday.tue: Tue
+  stats.weekday.wed: Wed
+  stats.weekday.thu: Thu
+  stats.weekday.fri: Fri
+  stats.weekday.sat: Sat
+  stats.weekday.sun: Sun
+  stats.daypart.morning: Morning
+  stats.daypart.afternoon: Afternoon
+  stats.daypart.evening: Evening
+  stats.daypart.night: Night
   confirm.clear_history: Clear all history?
   confirm.accept: Confirm
   confirm.cancel: Cancel

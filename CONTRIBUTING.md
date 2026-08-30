@@ -1,7 +1,6 @@
 # Contributing to Radio
 
-Small, focused fixes and additions are welcome. Before starting a larger change,
-open an issue so the direction can be agreed on first.
+Small, focused fixes and additions are welcome. Before starting a larger change, open an issue so the direction can be agreed on first.
 
 ## Set up the project
 
@@ -12,8 +11,7 @@ uv sync
 make run
 ```
 
-The API can be started with `make api`. Its interactive documentation is at
-`http://127.0.0.1:8000/docs`.
+The API can be started with `make api`. Its interactive documentation is at `http://127.0.0.1:8000/docs`.
 
 ## Run the checks
 
@@ -22,9 +20,7 @@ uv run python -m unittest discover -s tests -v
 uv run python -m compileall -q app tests
 ```
 
-Add a regression test for behavior changes and bug fixes. Tests should exercise
-the real component where practical; keep fakes at external boundaries such as
-the audio process or filesystem.
+Add a regression test for behavior changes and bug fixes. Tests should exercise the real component where practical; keep fakes at external boundaries such as the audio process or filesystem.
 
 ## Keep changes consistent
 

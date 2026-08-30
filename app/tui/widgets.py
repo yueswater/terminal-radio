@@ -23,7 +23,7 @@ from app.constants.tui import (
 from app.core.i18n import Translator
 from app.enums import PlaybackState, StationHealth
 from app.models import PlayerStatus, Station, Theme
-from app.services import StationSummary
+from app.services import ListeningStatistics, StationSummary
 from app.tui.formatting import (
     format_clock,
     format_duration,
@@ -31,6 +31,7 @@ from app.tui.formatting import (
     format_volume,
     truncate,
 )
+from app.tui.statistics import render_listening_statistics
 
 def scale_ascii(lines: tuple[str, ...], factor: int) -> tuple[str, ...]:
     """Return the art enlarged by repeating each cell and each row."""
@@ -219,6 +220,69 @@ class HistoryTable(NavigableTable):
                 format_timestamp(summary.last_played_at),
                 key=summary.station_slug,
             )
+
+
+class ListeningStatsPanel(VerticalScroll):
+    """Scrollable collection of localized terminal-native listening charts."""
+
+    BINDINGS = PAGE_NAVIGATION
+
+    def __init__(self, translator: Translator, **kwargs: object) -> None:
+        super().__init__(can_focus=True, **kwargs)
+        self.t = translator
+        self._report: ListeningStatistics | None = None
+
+    def compose(self) -> ComposeResult:
+        yield Static("", id="statistics-report", markup=False)
+
+    def show(self, report: ListeningStatistics) -> None:
+        """Replace the report and redraw it for the available width."""
+        self._report = report
+        self._render_report()
+
+    def retranslate(self, translator: Translator) -> None:
+        """Redraw every heading in the newly selected interface language."""
+        self.t = translator
+        self._render_report()
+
+    def on_resize(self) -> None:
+        """Keep chart lines within the terminal when its width changes."""
+        self._render_report()
+
+    def action_scroll_down(self) -> None:
+        """Move immediately so keyboard scrolling remains responsive."""
+        self.scroll_down(animate=False, immediate=True)
+
+    def action_scroll_up(self) -> None:
+        """Move immediately so keyboard scrolling remains responsive."""
+        self.scroll_up(animate=False, immediate=True)
+
+    def action_page_down(self) -> None:
+        """Move one visible page down without animating the whole report."""
+        self.scroll_to(
+            y=self.scroll_y + self.scrollable_content_region.height,
+            animate=False,
+            immediate=True,
+        )
+
+    def action_page_up(self) -> None:
+        """Move one visible page up without animating the whole report."""
+        self.scroll_to(
+            y=self.scroll_y - self.scrollable_content_region.height,
+            animate=False,
+            immediate=True,
+        )
+
+    def _render_report(self) -> None:
+        if not self.is_mounted or self._report is None:
+            return
+        self.query_one("#statistics-report", Static).update(
+            render_listening_statistics(
+                self._report,
+                self.t,
+                width=max(self.size.width - 4, 40),
+            )
+        )
 
 
 class SettingsTable(NavigableTable):
@@ -519,6 +583,8 @@ class KeyHintBar(Static):
         ("m", "key.mute"),
         ("t", "key.theme"),
         ("w", "key.language"),
+        ("/", "key.search"),
+        ("?", "key.help"),
         ("q", "key.quit"),
     )
 

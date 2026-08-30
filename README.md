@@ -56,7 +56,7 @@ Without installing, use `make run`, `make api` or `uv run radio ...`.
 
 ## Terminal interface
 
-The tabs include **Home**, FM, AM, **Favorites**, **History**, **Themes**, **Settings** and **About**. Every launch starts on Home, even when the app also resumes the last station. The bottom bar shows the playback state, frequency, station, program title, elapsed time, audio output and volume. Click the playback state at the bottom left to pause or resume. The output device name is limited to fifteen characters. By default, the last station resumes at startup.
+The tabs include **Home**, FM, AM, **Favorites**, **History**, **Statistics**, **Themes**, **Settings** and **About**. Every launch starts on Home, even when the app resumes the last station. The bottom bar shows the playback state, frequency, station, program title, elapsed time, audio output, sleep timer and volume. Click the playback state at the bottom left to pause or resume. The output device name is limited to fifteen characters. By default, the last station resumes at startup.
 
 | Key | Action |
 | --- | --- |
@@ -73,15 +73,17 @@ The tabs include **Home**, FM, AM, **Favorites**, **History**, **Themes**, **Set
 | `e` | Export settings |
 | `i` | Import settings |
 | `w` | Switch between English and Traditional Chinese |
+| `/` | Search all built-in and custom stations |
+| `?` | Open the keyboard shortcut guide |
 | `q` | Quit |
 
 ## Scrolling
 
 When columns are wider than the window, use a mouse or trackpad to scroll horizontally. The horizontal scrollbar is hidden so it does not look like a volume bar. The left and right arrow keys still only switch tabs.
 
-If all rows fit on screen but the columns are too wide, scrolling down moves right and scrolling up moves left. When more rows are available below, the wheel keeps its normal vertical movement.
+If all rows fit on screen but the columns are too wide, scrolling down moves right and scrolling up moves left. When more rows are available below, the wheel keeps its normal vertical movement. The FM, AM, Favorites, History and Settings tables stay centred with the same space above and below. Their pages remain fixed while only the table rows scroll.
 
-Favorites, volume, mute, the last station and the active theme are stored in `.radio/state.json`.
+Favorites, volume, mute, autoplay, reconnect, station checks, language, the last station and the active theme are stored in `.radio/state.json`.
 
 ## Configuration files
 
@@ -93,8 +95,9 @@ Favorites, volume, mute, the last station and the active theme are stored in `.r
 | `app/tui/radio.tcss` | Terminal interface layout |
 | `.radio/history.jsonl` | Listening history, with one JSON event per line |
 | `.radio/state.json` | Favorites, volume, mute, autoplay, animations, language, station and theme |
+| `.radio/custom-stations.toml` | Stations added from the Settings page |
 
-To add a station, append a block to `stations.toml`:
+Built-in stations live in `stations.toml`. You can also open **Custom stations** from **Settings** to add, edit or delete a local station without changing the project file. Custom stream URLs must use HTTP or HTTPS. To add a built-in station, append a block to `stations.toml`:
 
 ```toml
 [[stations]]
@@ -110,6 +113,16 @@ url = "https://example.com/live/playlist.m3u8"
 
 The bottom bar shows where the sound is being sent. `mpv` only reports `auto`, so macOS runs `system_profiler SPAudioDataType` in the background every fifteen seconds and caches the result. On other platforms, or when detection fails, the app shows the name of the mpv output driver instead.
 
+## Playback tools
+
+Press `/` to search by frequency, station name, description or band. Results update while you type, and `enter` plays the highlighted station.
+
+Automatic reconnect is enabled by default. When a stream drops, Radio retries after 1, 2, 4, 8 and 15 seconds. It stops retrying after the fifth failure. You can turn this off in **Settings**.
+
+The sleep timer can be turned off or set to 15, 30, 60 or a custom number of minutes from 1 to 1440. Its countdown appears in the bottom bar and only lasts for the current run.
+
+Radio can check whether station streams are online, slow or offline. Automatic checks are cached for five minutes, and **Check all stations now** runs a fresh check. At most four streams are checked at once.
+
 ## Languages
 
 Radio currently includes only English and Traditional Chinese. Their messages are stored in `locales/en.yml` and `locales/zh-Hant.yml`, and Traditional Chinese is the default. Press `w` to switch between them. The **Settings** page also shows the current language.
@@ -120,7 +133,7 @@ All text written by the app is translated. Station names, descriptions and progr
 
 The **Themes** page previews every palette in `themes.yml`. Each card uses its own background, foreground and color swatches. Press `enter` to apply the selected theme. When you return to this page, the cursor stays on the active theme.
 
-The **Settings** page lists options such as autoplay, animations, language, theme and volume. Press `enter` to change editable items, and the notes column shows the related key. Read-only items show their value and the environment variable that can override it. Select **Restore defaults** and confirm to reset these settings while keeping favorites, the last station and listening history.
+The **Settings** page includes autoplay, reconnect, sleep timer, station checks, custom stations, keyboard shortcuts, animations, language, theme and volume. Press `enter` to change an editable item. Read-only items show their value and the environment variable that can override it. Select **Restore defaults** and confirm to reset preferences while keeping favorites, custom stations, the last station and listening history.
 
 Animations are off by default.
 
@@ -137,23 +150,28 @@ The file name follows the format `settings_<timestamp>.radio.config`, with time 
   "version": "0.1.0",
   "exported_at": "2026-08-30T13:44:24.355+08:00",
   "settings": { "...": "..." },
-  "preferences": { "favorites": [], "volume": 100, "...": "..." }
+  "preferences": { "favorites": [], "volume": 100, "...": "..." },
+  "custom_stations": []
 }
 ```
 
-Press `i` to search the same folders for `.radio.config` files, listed from newest to oldest. Importing restores favorites, volume, mute, theme, language, autoplay and animations. Every page is updated at once.
+Press `i` to search the same folders for `.radio.config` files, listed from newest to oldest. Importing restores custom stations, favorites, volume, mute, theme, language, autoplay, reconnect, station checks and animations. Every page is updated at once. Older exports without `custom_stations` remain supported.
 
 The app only applies the `preferences` section. The `settings` section records the environment at the time of export, so its paths and commands belong to the original device and are not transferred during import. Files with an invalid format or the wrong value types are rejected. Stations that no longer exist are also removed from favorites and the last-played record.
 
 ## Listening history
 
-Each session start, session end, play, pause and resume is written to `.radio/history.jsonl` with timing data. A `play_ended` event records the total elapsed time and paused time. The actual listening time is `duration_seconds - paused_seconds`. The table always shows listening and paused time as `HH:MM:SS`. Select **Clear listening history** and confirm to remove all saved events.
+Each session start, session end, play, pause and resume is written to `.radio/history.jsonl` with timing data. A `play_ended` event records the total elapsed, paused and interrupted time. Listening time excludes both pauses and reconnect interruptions. The table always uses `HH:MM:SS`.
+
+Select **Export CSV** to save the complete station summary with a UTF-8 BOM. Column names follow the current interface language. Select **Clear listening history** and confirm to remove all saved events.
+
+The **Statistics** page reads the complete valid history and draws terminal charts for total listening time, play count, active days, the ten most-listened stations, a 14-day trend, weekdays, time of day and FM/AM share. Only completed plays are counted.
 
 ## API endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/stations?band=FM` | List stations, optionally filtered by band |
+| GET | `/stations?band=FM&q=police` | List stations, optionally filtered by band or search text |
 | GET | `/stations/{slug}` | Get one station |
 | GET | `/player` | Get playback state, program title and timers |
 | POST | `/player/play` | Play a station |

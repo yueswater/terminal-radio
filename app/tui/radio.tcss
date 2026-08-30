@@ -30,12 +30,25 @@ TabPane {
     padding: 0 1;
 }
 
-#tab-history, #tab-settings,
+.centered-table-page,
+#tab-statistics,
 .centered-table-shell {
     overflow: hidden;
 }
 
+#statistics {
+    height: 1fr;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+#statistics-report {
+    width: 100%;
+    height: auto;
+}
+
 .table-action-spacer,
+.table-action-footer-spacer,
 #history-actions, #settings-actions {
     height: 1;
 }
@@ -49,11 +62,11 @@ TabPane {
     align-horizontal: right;
 }
 
-#clear-history, #reset-settings {
+#clear-history, #export-history, #reset-settings {
     min-width: 18;
 }
 
-#history, #settings {
+.main-station-table, #history, #settings {
     height: 25;
     max-height: 100%;
     overflow-y: auto;
@@ -160,6 +173,130 @@ ConfirmationScreen {
 SleepTimerScreen {
     align: center middle;
     background: $background 70%;
+}
+
+ShortcutHelpScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#shortcut-dialog {
+    width: 58;
+    max-width: 92%;
+    height: auto;
+    max-height: 94%;
+    padding: 1 3;
+    background: $surface;
+    border: round $primary;
+}
+
+#shortcut-title {
+    height: 1;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#shortcut-content {
+    height: auto;
+}
+
+#shortcut-close-hint {
+    height: 1;
+    margin-top: 1;
+    text-align: center;
+    color: $text-muted;
+}
+
+StationSearchScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+CustomStationManagerScreen,
+CustomStationFormScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#custom-station-manager {
+    width: 90%;
+    height: 80%;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#custom-manager-title, #custom-form-title {
+    height: 1;
+    text-style: bold;
+    text-align: center;
+}
+
+#custom-station-list {
+    height: 1fr;
+    margin: 1 0;
+}
+
+#custom-manager-actions, #custom-form-actions {
+    height: 3;
+    align-horizontal: center;
+}
+
+#custom-manager-actions Button,
+#custom-form-actions Button {
+    min-width: 10;
+    margin: 0 1;
+}
+
+#custom-station-form {
+    width: 72;
+    max-width: 92%;
+    height: auto;
+    max-height: 95%;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+.custom-form-label {
+    height: 1;
+    color: $text-muted;
+    margin-top: 1;
+}
+
+#custom-form-error {
+    height: 1;
+    color: $error;
+    text-align: center;
+}
+
+#station-search-dialog {
+    width: 90%;
+    height: 80%;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#station-search-title {
+    height: 1;
+    text-style: bold;
+    text-align: center;
+}
+
+#station-search-input {
+    margin: 1 0;
+}
+
+#station-search-results {
+    height: 1fr;
+}
+
+#station-search-hint {
+    height: 1;
+    color: $text-muted;
+    text-align: center;
 }
 
 #sleep-dialog {

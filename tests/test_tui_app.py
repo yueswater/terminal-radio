@@ -6,11 +6,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from textual.widgets import Button, Input, Static, TabbedContent, TabPane
+from textual.widgets import Button, Input, Select, Static, TabbedContent, TabPane
 
 from app.core.config import Settings
 from app.core.i18n import LocaleRepository
 from app.enums import Band, PlaybackState
+from app.models import Station
 from app.services import (
     HistoryLog,
     PersistedState,
@@ -21,8 +22,20 @@ from app.services import (
     ThemeRepository,
     build_radio_service,
 )
-from app.tui.app import HISTORY_TAB, HOME_TAB, SETTINGS_TAB, RadioApp
-from app.tui.widgets import HistoryTable, SettingsTable
+from app.tui.app import (
+    FAVORITES_TAB,
+    HISTORY_TAB,
+    HOME_TAB,
+    SETTINGS_TAB,
+    STATISTICS_TAB,
+    RadioApp,
+)
+from app.tui.widgets import (
+    HistoryTable,
+    ListeningStatsPanel,
+    SettingsTable,
+    StationTable,
+)
 
 
 class MemoryPlayer:
@@ -75,6 +88,219 @@ class MemoryPlayer:
 
 
 class RadioAppTests(unittest.IsolatedAsyncioTestCase):
+    async def test_statistics_tab_renders_and_scrolls_inside_its_page(self) -> None:
+        """The charts refresh on activation and own their vertical scrolling."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            elapsed = [0.0]
+            service = RadioService(
+                catalog=StationCatalog.from_file(settings.stations_file),
+                player=MemoryPlayer(),
+                history=HistoryLog(settings.history_file),
+                state=StateStore(settings.state_file),
+                autoplay_last_station=False,
+                clock=lambda: elapsed[0],
+            )
+            station = service.list_stations(Band.FM)[0]
+            service.play(station.slug)
+            elapsed[0] = 120
+            service.stop()
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(120, 24)) as pilot:
+                app.query_one(TabbedContent).active = STATISTICS_TAB
+                await pilot.pause()
+
+                pane = app.query_one(f"#{STATISTICS_TAB}", TabPane)
+                panel = pane.query_one(ListeningStatsPanel)
+                report = str(panel.query_one("#statistics-report", Static).render())
+
+                self.assertIn("聆聽統計", report)
+                self.assertIn(station.name[:8], report)
+                self.assertEqual(pane.max_scroll_y, 0)
+                self.assertGreater(panel.max_scroll_y, 0)
+
+                panel.focus()
+                for _ in range(10):
+                    if panel.has_focus:
+                        break
+                    await pilot.pause()
+                self.assertTrue(panel.has_focus)
+                panel.action_scroll_down()
+                for _ in range(20):
+                    if panel.scroll_y > 0:
+                        break
+                    await pilot.pause()
+                self.assertGreater(panel.scroll_y, 0)
+                self.assertEqual(pane.scroll_y, 0)
+
+    async def test_shortcut_help_opens_from_key_and_settings(self) -> None:
+        """A centered localized shortcut card is available from both entry points."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            app = RadioApp(
+                build_radio_service(settings),
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(120, 32)) as pilot:
+                await pilot.press("question_mark")
+                dialog = app.screen.query_one("#shortcut-dialog")
+                content = str(app.screen.query_one("#shortcut-content", Static).render())
+                self.assertAlmostEqual(
+                    dialog.region.center[0], app.screen.region.center[0], delta=0.5
+                )
+                self.assertIn("搜尋電台", content)
+                self.assertIn("/", content)
+                await pilot.press("escape")
+
+                app.query_one(TabbedContent).active = SETTINGS_TAB
+                await pilot.pause()
+                table = app.query_one(SettingsTable)
+                table.move_cursor(row=table.get_row_index("shortcuts"))
+                await pilot.press("enter")
+
+                self.assertTrue(app.screen.query("#shortcut-dialog"))
+
+    async def test_custom_station_add_edit_and_confirmed_delete(self) -> None:
+        """Settings manages only local stations and confirms deletion."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            service = build_radio_service(settings)
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = SETTINGS_TAB
+                await pilot.pause()
+                settings_table = app.query_one(SettingsTable)
+                settings_table.move_cursor(
+                    row=settings_table.get_row_index("custom_stations")
+                )
+                await pilot.press("enter")
+                manager = app.screen.query_one("#custom-station-list", StationTable)
+                self.assertEqual(manager.row_count, 0)
+
+                await pilot.click("#custom-station-add")
+                app.screen.query_one("#custom-name", Input).value = "我的電台"
+                app.screen.query_one("#custom-band", Select).value = Band.AM
+                app.screen.query_one("#custom-frequency", Input).value = "1000"
+                app.screen.query_one("#custom-url", Input).value = (
+                    "https://example.com/my-radio"
+                )
+                app.screen.query_one("#custom-description", Input).value = "談話"
+                await pilot.click("#custom-save")
+                await pilot.pause()
+
+                added = service.custom_stations()[0]
+                self.assertEqual(added.name, "我的電台")
+                self.assertEqual(
+                    app.screen.query_one("#custom-station-list", StationTable).row_count,
+                    1,
+                )
+
+                await pilot.click("#custom-station-edit")
+                app.screen.query_one("#custom-name", Input).value = "我的新電台"
+                await pilot.click("#custom-save")
+                await pilot.pause()
+                self.assertEqual(service.custom_stations()[0].name, "我的新電台")
+
+                await pilot.click("#custom-station-delete")
+                self.assertTrue(app.screen.query("#confirm-dialog"))
+                await pilot.click("#confirm-accept")
+                await pilot.pause()
+                self.assertEqual(service.custom_stations(), ())
+
+    async def test_slash_search_filters_and_plays_a_result(self) -> None:
+        """Slash opens global live search and Enter plays its highlighted row."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            service = RadioService(
+                catalog=StationCatalog.from_file(settings.stations_file),
+                player=MemoryPlayer(),
+                history=HistoryLog(settings.history_file),
+                state=StateStore(settings.state_file),
+                autoplay_last_station=False,
+            )
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.press("slash")
+                field = app.screen.query_one("#station-search-input", Input)
+                self.assertTrue(field.has_focus)
+                field.value = "Hit FM"
+                await pilot.pause()
+                results = app.screen.query_one("#station-search-results", StationTable)
+                self.assertEqual(results.row_count, 1)
+
+                await pilot.press("enter")
+
+                status = service.status()
+                self.assertEqual(status.state, PlaybackState.PLAYING)
+                self.assertEqual(status.station.slug, "hitfm-taipei")
+
+    async def test_escape_closes_search_without_playing(self) -> None:
+        """Dismissing search leaves playback unchanged."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            app = RadioApp(
+                build_radio_service(settings),
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+            async with app.run_test(size=(120, 30)) as pilot:
+                await pilot.press("slash")
+                await pilot.press("escape")
+                self.assertFalse(app.query("#station-search-input"))
+                self.assertEqual(app._service.status().state, PlaybackState.STOPPED)
+
     async def test_settings_toggle_reconnect_and_set_sleep_preset(self) -> None:
         """Reconnect and the sleep timer are controlled from Settings."""
         with tempfile.TemporaryDirectory() as directory:
@@ -109,6 +335,16 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.press("enter")
                 self.assertFalse(service.auto_reconnect)
                 self.assertEqual(table.get_cell("reconnect", "value"), "關")
+
+                self.assertEqual(table.get_cell("health_auto", "value"), "開")
+                table.move_cursor(row=table.get_row_index("health_auto"))
+                await pilot.press("enter")
+                self.assertFalse(service.auto_health_check)
+                self.assertEqual(table.get_cell("health_auto", "value"), "關")
+                self.assertEqual(
+                    table.get_cell("health_check_all", "name"),
+                    "立即檢查所有電台",
+                )
 
                 table.move_cursor(row=table.get_row_index("sleep_timer"))
                 await pilot.press("enter")
@@ -161,10 +397,10 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.press("enter")
                 self.assertGreater(service.sleep_remaining_seconds() or 0, 2699)
 
-    async def test_history_and_settings_tables_reserve_twenty_four_centered_rows(
+    async def test_station_history_and_settings_tables_share_centered_layout(
         self,
     ) -> None:
-        """Both pages reserve twenty-four rows with compact symmetric spacing."""
+        """All table pages reserve twenty-four rows with symmetric spacing."""
         with tempfile.TemporaryDirectory() as directory:
             settings = Settings(
                 data_dir=Path(directory),
@@ -181,21 +417,31 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
             )
 
             async with app.run_test(size=(160, 48)) as pilot:
-                for tab_id, table_type in (
-                    (HISTORY_TAB, HistoryTable),
-                    (SETTINGS_TAB, SettingsTable),
+                for tab_id, table_type, footer_selector in (
+                    (
+                        app.band_tab(Band.FM),
+                        StationTable,
+                        ".table-action-footer-spacer",
+                    ),
+                    (
+                        app.band_tab(Band.AM),
+                        StationTable,
+                        ".table-action-footer-spacer",
+                    ),
+                    (
+                        FAVORITES_TAB,
+                        StationTable,
+                        ".table-action-footer-spacer",
+                    ),
+                    (HISTORY_TAB, HistoryTable, "#history-actions"),
+                    (SETTINGS_TAB, SettingsTable, "#settings-actions"),
                 ):
                     with self.subTest(tab=tab_id):
                         app.query_one(TabbedContent).active = tab_id
                         await pilot.pause()
 
                         pane = app.query_one(f"#{tab_id}", TabPane)
-                        table = app.query_one(table_type)
-                        action_id = (
-                            "#history-actions"
-                            if tab_id == HISTORY_TAB
-                            else "#settings-actions"
-                        )
+                        table = pane.query_one(table_type)
                         top_gap = table.region.y - pane.content_region.y
                         bottom_gap = pane.content_region.bottom - table.region.bottom
 
@@ -208,11 +454,14 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                             pane.query_one(".table-action-spacer").region.height,
                             1,
                         )
-                        self.assertEqual(pane.query_one(action_id).region.height, 1)
+                        self.assertEqual(
+                            pane.query_one(footer_selector).region.height,
+                            1,
+                        )
                         self.assertLess(table.region.height, pane.content_region.height)
 
     async def test_long_tables_scroll_inside_their_page_only(self) -> None:
-        """Overflowing rows must scroll without moving either compact page."""
+        """Overflowing rows must scroll without moving any table page."""
         with tempfile.TemporaryDirectory() as directory:
             settings = Settings(
                 data_dir=Path(directory),
@@ -230,18 +479,33 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
 
             async with app.run_test(size=(120, 24)) as pilot:
                 for tab_id, table_type in (
+                    (app.band_tab(Band.FM), StationTable),
+                    (app.band_tab(Band.AM), StationTable),
+                    (FAVORITES_TAB, StationTable),
                     (HISTORY_TAB, HistoryTable),
                     (SETTINGS_TAB, SettingsTable),
                 ):
                     with self.subTest(tab=tab_id):
                         app.query_one(TabbedContent).active = tab_id
-                        table = app.query_one(table_type)
+                        pane = app.query_one(f"#{tab_id}", TabPane)
+                        table = pane.query_one(table_type)
                         for _ in range(20):
                             if table.has_focus:
                                 break
                             await pilot.pause()
                         self.assertTrue(table.has_focus)
-                        if isinstance(table, HistoryTable):
+                        if isinstance(table, StationTable):
+                            rows = tuple(
+                                Station(
+                                    slug=f"station-{index}",
+                                    name=f"Station {index}",
+                                    band=Band.FM,
+                                    frequency=f"{88 + index / 10:.1f}",
+                                    url=f"https://example.com/{index}",
+                                )
+                                for index in range(40)
+                            )
+                        elif isinstance(table, HistoryTable):
                             rows = tuple(
                                 StationSummary(
                                     station_slug=f"station-{index}",
@@ -259,12 +523,14 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                                 )
                                 for index in range(40)
                             )
-                        pane = app.query_one(f"#{tab_id}", TabPane)
                         for _ in range(20):
                             # A queued TabActivated handler may legitimately
                             # refresh the table once. Reapply the fixture until
                             # both its rows and layout are observable together.
-                            table.show(rows)
+                            if isinstance(table, StationTable):
+                                table.set_stations(rows)
+                            else:
+                                table.show(rows)
                             await pilot.pause()
                             if table.row_count == 40 and table.max_scroll_y > 0:
                                 break
@@ -467,6 +733,47 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(service.history(), ())
                 self.assertEqual(app.query_one(HistoryTable).row_count, 0)
 
+    async def test_history_csv_headers_follow_current_interface_language(self) -> None:
+        """History CSV uses the translator active when the export begins."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            service = build_radio_service(settings)
+            station = service.list_stations(Band.FM)[0]
+            service.play(station.slug)
+            service.stop()
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = HISTORY_TAB
+                await pilot.pause()
+                await pilot.click("#export-history")
+
+                filename = str(
+                    app.screen.query_one("#export-filename", Static).render()
+                )
+                app.screen.dismiss(Path(directory))
+                await pilot.pause()
+
+                with (Path(directory) / filename).open(
+                    encoding="utf-8-sig", newline=""
+                ) as stream:
+                    header = stream.readline().strip()
+                self.assertEqual(
+                    header,
+                    "頻率,電台,次數,收聽時間,暫停時間,最後收聽",
+                )
+
     async def test_reset_settings_waits_for_confirmation_and_preserves_library(self) -> None:
         """Confirmed reset restores defaults without deleting the user's library."""
         with tempfile.TemporaryDirectory() as directory:
@@ -489,6 +796,7 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                     autoplay_last_station=False,
                     enable_animations=True,
                     auto_reconnect=False,
+                    auto_health_check=False,
                     locale="en",
                 )
             )
@@ -532,6 +840,7 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(restored.autoplay_last_station)
                 self.assertFalse(restored.enable_animations)
                 self.assertTrue(restored.auto_reconnect)
+                self.assertTrue(restored.auto_health_check)
                 self.assertEqual(restored.locale, "zh-Hant")
                 self.assertEqual(restored.theme_name, "sonic")
                 self.assertEqual(restored.favorites, [station.slug])

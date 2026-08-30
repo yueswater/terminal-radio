@@ -10,6 +10,7 @@ from app.core.exceptions import CatalogError, PlayerError, StationNotFoundError
 from app.enums import Band, HistoryEventType, PlaybackState
 from app.models import HistoryEvent, PlayerStatus, Station
 from app.services.catalog import StationCatalog
+from app.services.analytics import ListeningStatistics, build_listening_statistics
 from app.services.custom_stations import CustomStationStore
 from app.services.history import HistoryLog, StationSummary, build_event
 from app.services.player import MpvPlayer, Player
@@ -536,6 +537,14 @@ class RadioService:
     def summaries(self, limit: int | None = None) -> tuple[StationSummary, ...]:
         """Return listening totals per station, most listened first."""
         return self._history.summarize(limit)
+
+    def all_summaries(self) -> tuple[StationSummary, ...]:
+        """Return listening totals from the complete valid history log."""
+        return self._history.summarize_all()
+
+    def listening_statistics(self) -> ListeningStatistics:
+        """Aggregate the complete valid history for the statistics page."""
+        return build_listening_statistics(self._history.read_all())
 
     def _elapsed_seconds(self) -> float:
         """Return the wall clock time since the current play entry started."""

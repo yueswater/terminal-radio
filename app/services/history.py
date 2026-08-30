@@ -43,6 +43,17 @@ class HistoryLog:
 
     def read(self, limit: int | None = None) -> tuple[HistoryEvent, ...]:
         """Return the most recent events, newest first."""
+        maximum = self._limit if limit is None else limit
+        return self._read(maximum)
+
+    def read_all(self) -> tuple[HistoryEvent, ...]:
+        """Return the whole valid log, newest first, without the table cap."""
+        return self._read(None)
+
+    def _read(self, maximum: int | None) -> tuple[HistoryEvent, ...]:
+        """Read at most ``maximum`` valid entries, or every entry when unset."""
+        if maximum is not None and maximum <= 0:
+            return ()
         try:
             lines = self._path.read_text(encoding="utf-8").splitlines()
         except OSError:
@@ -56,7 +67,7 @@ class HistoryLog:
                 events.append(HistoryEvent(**json.loads(line)))
             except (json.JSONDecodeError, TypeError, ValidationError):
                 continue
-            if len(events) >= (limit or self._limit):
+            if maximum is not None and len(events) >= maximum:
                 break
 
         return tuple(events)
@@ -71,10 +82,21 @@ class HistoryLog:
 
     def summarize(self, limit: int | None = None) -> tuple[StationSummary, ...]:
         """Aggregate finished plays per station, most listened first."""
+        return self._summarize(self.read(limit))
+
+    def summarize_all(self) -> tuple[StationSummary, ...]:
+        """Aggregate every finished play without applying the display cap."""
+        return self._summarize(self.read_all())
+
+    @staticmethod
+    def _summarize(
+        events: tuple[HistoryEvent, ...],
+    ) -> tuple[StationSummary, ...]:
+        """Aggregate the supplied events per station, most listened first."""
         totals: dict[str, StationSummary] = {}
         grouped: dict[str, list[HistoryEvent]] = defaultdict(list)
 
-        for event in self.read(limit):
+        for event in events:
             if event.type is HistoryEventType.PLAY_ENDED and event.station_slug:
                 grouped[event.station_slug].append(event)
 

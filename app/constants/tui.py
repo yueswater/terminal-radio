@@ -7,6 +7,7 @@ from app.enums import PlaybackState, StationHealth
 HOME_TAB = "tab-home"
 FAVORITES_TAB = "tab-favorites"
 HISTORY_TAB = "tab-history"
+STATISTICS_TAB = "tab-statistics"
 THEMES_TAB = "tab-themes"
 SETTINGS_TAB = "tab-settings"
 ABOUT_TAB = "tab-about"
@@ -19,10 +20,29 @@ DEVICE_NAME_LIMIT = 15
 EMPTY = "—"
 STAR = "★"
 
+SHORTCUT_HELP = (
+    ("← / →", "key.tabs"),
+    ("j / k", "key.move"),
+    ("enter", "key.select"),
+    ("space", "key.pause"),
+    ("s", "key.stop"),
+    ("f", "key.favorite"),
+    ("+ / -", "key.volume_up"),
+    ("m", "key.mute"),
+    ("t", "key.theme"),
+    ("w", "key.language"),
+    ("e", "key.export"),
+    ("i", "key.import"),
+    ("/", "key.search"),
+    ("?", "key.help"),
+    ("q", "key.quit"),
+)
+
 TAB_LABELS = {
     HOME_TAB: "tab.home",
     FAVORITES_TAB: "tab.favorites",
     HISTORY_TAB: "tab.history",
+    STATISTICS_TAB: "tab.statistics",
     THEMES_TAB: "tab.themes",
     SETTINGS_TAB: "tab.settings",
     ABOUT_TAB: "tab.about",
@@ -67,4 +87,8 @@ PAGE_NAVIGATION = [
     Binding("right", "app.next_tab", "Next tab", show=False),
     Binding("k", "scroll_up", "Up", show=False),
     Binding("j", "scroll_down", "Down", show=False),
+    Binding("pageup", "page_up", "Page up", show=False),
+    Binding("pagedown", "page_down", "Page down", show=False),
+    Binding("home", "scroll_home", "Top", show=False),
+    Binding("end", "scroll_end", "Bottom", show=False),
 ]
