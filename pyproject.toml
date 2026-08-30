@@ -53,16 +53,14 @@ build-backend = "hatchling.build"
 packages = ["terminal_radio"]
 
 [tool.hatch.build.targets.sdist]
-# Everything needed to rebuild and to verify the wheel, and nothing else.
+# Enough to rebuild the wheel and to verify it, and nothing else. The logo
+# generator and the rendered artwork belong to the repository, not to a
+# distribution someone installs.
 include = [
     "/terminal_radio",
     "/tests",
-    "/scripts",
-    "/assets",
     "/README.md",
-    "/README.zh-Hant.md",
     "/LICENSE",
-    "/Makefile",
 ]
 
 [tool.pytest.ini_options]
