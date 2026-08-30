@@ -6,15 +6,17 @@ import time
 from collections.abc import Callable
 
 from app.core.config import Settings, get_settings
-from app.core.exceptions import PlayerError, StationNotFoundError
+from app.core.exceptions import CatalogError, PlayerError, StationNotFoundError
 from app.enums import Band, HistoryEventType, PlaybackState
 from app.models import HistoryEvent, PlayerStatus, Station
 from app.services.catalog import StationCatalog
+from app.services.custom_stations import CustomStationStore
 from app.services.history import HistoryLog, StationSummary, build_event
 from app.services.player import MpvPlayer, Player
 from app.services.reconnect import ReconnectSchedule
 from app.services.sleep_timer import SleepTimer
 from app.services.state import PersistedState, StateStore
+from app.services.station_library import StationLibrary
 
 
 class RadioService:
@@ -32,8 +34,10 @@ class RadioService:
         reconnect: ReconnectSchedule | None = None,
         sleep_timer: SleepTimer | None = None,
         clock: Callable[[], float] = time.monotonic,
+        station_library: StationLibrary | None = None,
     ) -> None:
         self._catalog = catalog
+        self._station_library = station_library
         self._player = player
         self._history = history
         self._state = state
@@ -71,16 +75,18 @@ class RadioService:
     @property
     def catalog(self) -> StationCatalog:
         """Return the underlying station catalog."""
+        if self._station_library is not None:
+            return self._station_library.catalog
         return self._catalog
 
     def list_stations(self, band: Band | None = None) -> tuple[Station, ...]:
         """Return every station, optionally restricted to one band."""
-        return self._catalog.by_band(band) if band else self._catalog.all()
+        return self.catalog.by_band(band) if band else self.catalog.all()
 
     def favorites(self) -> tuple[Station, ...]:
         """Return the starred stations, in catalog order."""
         return tuple(
-            station for station in self._catalog.all() if station.slug in self._favorites
+            station for station in self.catalog.all() if station.slug in self._favorites
         )
 
     def is_favorite(self, slug: str) -> bool:
@@ -89,7 +95,7 @@ class RadioService:
 
     def toggle_favorite(self, slug: str) -> bool:
         """Star or unstar a station and return its new state."""
-        self._catalog.get(slug)
+        self.catalog.get(slug)
         if slug in self._favorites:
             self._favorites.remove(slug)
         else:
@@ -100,7 +106,96 @@ class RadioService:
 
     def get_station(self, slug: str) -> Station:
         """Return one station or raise StationNotFoundError."""
-        return self._catalog.get(slug)
+        return self.catalog.get(slug)
+
+    def search_stations(self, query: str) -> tuple[Station, ...]:
+        """Search every station display field in catalog order."""
+        if self._station_library is not None:
+            return self._station_library.search(query)
+        wanted = query.strip().casefold()
+        if not wanted:
+            return self.catalog.all()
+        return tuple(
+            item
+            for item in self.catalog.all()
+            if wanted
+            in " ".join(
+                (item.dial, item.name, item.description or "", item.band.value)
+            ).casefold()
+        )
+
+    def custom_stations(self) -> tuple[Station, ...]:
+        """Return user-defined stations in their saved order."""
+        return self._require_station_library().custom_stations
+
+    def add_custom_station(
+        self,
+        *,
+        name: str,
+        band: Band,
+        url: str,
+        frequency: str | None = None,
+        description: str | None = None,
+    ) -> Station:
+        """Add one local custom station."""
+        return self._require_station_library().add_custom(
+            name=name,
+            band=band,
+            url=url,
+            frequency=frequency,
+            description=description,
+        )
+
+    def update_custom_station(
+        self,
+        slug: str,
+        *,
+        name: str,
+        band: Band,
+        url: str,
+        frequency: str | None = None,
+        description: str | None = None,
+    ) -> Station:
+        """Edit one local custom station without changing its slug."""
+        changed = self._require_station_library().update_custom(
+            slug,
+            name=name,
+            band=band,
+            url=url,
+            frequency=frequency,
+            description=description,
+        )
+        if self._current is not None and self._current.slug == slug:
+            self._current = changed
+        return changed
+
+    def delete_custom_station(self, slug: str) -> Station:
+        """Delete one custom station and clean its remembered state."""
+        library = self._require_station_library()
+        if self._current is not None and self._current.slug == slug:
+            self.stop()
+        removed = library.delete_custom(slug)
+        self._favorites = [item for item in self._favorites if item != slug]
+        stored = self._state.load()
+        self._state.save(
+            stored.model_copy(
+                update={
+                    "favorites": list(self._favorites),
+                    "last_station_slug": (
+                        None
+                        if stored.last_station_slug == slug
+                        else stored.last_station_slug
+                    ),
+                }
+            )
+        )
+        return removed
+
+    def _require_station_library(self) -> StationLibrary:
+        """Return the mutable local library or raise a clear domain error."""
+        if self._station_library is None:
+            raise CatalogError("Custom station storage is unavailable")
+        return self._station_library
 
     def last_station(self) -> Station | None:
         """Return the station played during the previous run, when it still exists."""
@@ -108,7 +203,7 @@ class RadioService:
         if slug is None:
             return None
         try:
-            return self._catalog.get(slug)
+            return self.catalog.get(slug)
         except StationNotFoundError:
             return None
 
@@ -145,7 +240,7 @@ class RadioService:
 
     def play(self, slug: str) -> PlayerStatus:
         """Start playing the given station, closing the previous play entry."""
-        station = self._catalog.get(slug)
+        station = self.catalog.get(slug)
         self._finish_play()
         self._reconnect.reset()
         self._reset_play()
@@ -291,7 +386,7 @@ class RadioService:
 
     def apply_preferences(self, incoming: PersistedState) -> PersistedState:
         """Adopt imported preferences, dropping the parts this catalog cannot serve."""
-        known = {station.slug for station in self._catalog.all()}
+        known = {station.slug for station in self.catalog.all()}
         favorites = [slug for slug in incoming.favorites if slug in known]
         last = incoming.last_station_slug if incoming.last_station_slug in known else None
 
@@ -512,12 +607,17 @@ class RadioService:
 def build_radio_service(settings: Settings | None = None) -> RadioService:
     """Assemble a radio service from settings, wiring the default mpv backend."""
     settings = settings or get_settings()
+    library = StationLibrary(
+        StationCatalog.from_file(settings.stations_file),
+        CustomStationStore(settings.custom_stations_file),
+    )
     return RadioService(
-        catalog=StationCatalog.from_file(settings.stations_file),
+        catalog=library.catalog,
         player=MpvPlayer(settings.player_command, settings.ipc_socket),
         history=HistoryLog(settings.history_file, settings.history_limit),
         state=StateStore(settings.state_file),
         autoplay_last_station=settings.autoplay_last_station,
         enable_animations=settings.enable_animations,
         auto_reconnect=settings.auto_reconnect,
+        station_library=library,
     )

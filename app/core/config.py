@@ -57,6 +57,11 @@ class Settings(BaseModel):
         return self.data_dir / "state.json"
 
     @property
+    def custom_stations_file(self) -> Path:
+        """Return the TOML file holding user-defined stations."""
+        return self.data_dir / "custom-stations.toml"
+
+    @property
     def ipc_socket(self) -> Path:
         """Return the unix socket used to talk to the mpv process.
 

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from urllib.parse import urlsplit
+
+from pydantic import BaseModel, Field, field_validator
 
 from app.enums import Band, PlaybackState
 
@@ -12,12 +14,26 @@ class Station(BaseModel):
 
     model_config = {"frozen": True}
 
-    slug: str = Field(description="Stable identifier used by the API and the UI")
-    name: str
+    slug: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$",
+        description="Stable identifier used by the API and the UI",
+    )
+    name: str = Field(min_length=1, max_length=80)
     band: Band
-    url: str
-    frequency: str | None = None
-    description: str | None = None
+    url: str = Field(min_length=1)
+    frequency: str | None = Field(default=None, max_length=20)
+    description: str | None = Field(default=None, max_length=160)
+
+    @field_validator("url")
+    @classmethod
+    def validate_stream_url(cls, value: str) -> str:
+        """Accept only absolute HTTP(S) stream addresses."""
+        parsed = urlsplit(value)
+        if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("station URL must use HTTP or HTTPS")
+        return value
 
     @property
     def dial(self) -> str:

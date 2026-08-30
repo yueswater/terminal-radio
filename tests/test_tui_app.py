@@ -242,34 +242,32 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                             await pilot.pause()
                         self.assertTrue(table.has_focus)
                         if isinstance(table, HistoryTable):
-                            table.show(
-                                tuple(
-                                    StationSummary(
-                                        station_slug=f"station-{index}",
-                                        station_name=f"Station {index}",
-                                    )
-                                    for index in range(40)
+                            rows = tuple(
+                                StationSummary(
+                                    station_slug=f"station-{index}",
+                                    station_name=f"Station {index}",
                                 )
+                                for index in range(40)
                             )
-                            await pilot.pause()
                         elif isinstance(table, SettingsTable):
-                            table.show(
-                                tuple(
-                                    (
-                                        f"setting-{index}",
-                                        f"Setting {index}",
-                                        "Value",
-                                        "Note",
-                                    )
-                                    for index in range(40)
+                            rows = tuple(
+                                (
+                                    f"setting-{index}",
+                                    f"Setting {index}",
+                                    "Value",
+                                    "Note",
                                 )
+                                for index in range(40)
                             )
-                            await pilot.pause()
                         pane = app.query_one(f"#{tab_id}", TabPane)
                         for _ in range(20):
-                            if table.max_scroll_y > 0:
-                                break
+                            # A queued TabActivated handler may legitimately
+                            # refresh the table once. Reapply the fixture until
+                            # both its rows and layout are observable together.
+                            table.show(rows)
                             await pilot.pause()
+                            if table.row_count == 40 and table.max_scroll_y > 0:
+                                break
                         self.assertGreater(table.max_scroll_y, 0)
                         self.assertEqual(pane.max_scroll_y, 0)
 

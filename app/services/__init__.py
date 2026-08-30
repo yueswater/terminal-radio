@@ -1,6 +1,7 @@
 """Business logic: catalog access, audio backends, history and use cases."""
 
 from app.services.catalog import StationCatalog
+from app.services.custom_stations import CustomStationStore
 from app.services.history import HistoryLog, StationSummary
 from app.services.player import MpvPlayer, Player
 from app.services.radio import RadioService, build_radio_service
@@ -13,10 +14,12 @@ from app.services.transfer import (
     write_export,
 )
 from app.services.state import PersistedState, StateStore
+from app.services.station_library import StationLibrary
 from app.services.themes import ThemeRepository
 
 __all__ = [
     "HistoryLog",
+    "CustomStationStore",
     "MpvPlayer",
     "PersistedState",
     "Player",
@@ -25,6 +28,7 @@ __all__ = [
     "StateStore",
     "SleepTimer",
     "StationCatalog",
+    "StationLibrary",
     "StationSummary",
     "ThemeRepository",
     "build_radio_service",
