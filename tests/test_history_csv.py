@@ -8,7 +8,7 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.services import StationSummary, history_csv_filename, write_history_csv
+from terminal_radio.services import StationSummary, history_csv_filename, write_history_csv
 
 
 class HistoryCsvTests(unittest.TestCase):

@@ -1,0 +1,69 @@
+name: Publish
+
+# Publishing is driven by a tag, so what reaches PyPI is always something that
+# exists in the history under a name you can point at.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install mpv
+        run: sudo apt-get update && sudo apt-get install -y mpv
+
+      - name: Run the test suite
+        run: uv run --frozen python -m pytest tests -q
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check that the tag matches the project version
+        run: |
+          version=$(uv version --short)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "tag $tag does not match version $version in pyproject.toml" >&2
+            exit 1
+          fi
+
+      - name: Build the wheel and the source distribution
+        run: uv build
+
+      - name: Check the metadata renders on PyPI
+        run: uvx twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    # Trusted publishing exchanges this token with PyPI, so no API token is
+    # stored in the repository.
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

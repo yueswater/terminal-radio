@@ -7,12 +7,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.core.config import Settings
-from app.core.exceptions import RadioError
-from app.enums import Band
-from app.models import Station
-from app.routers.stations import list_stations
-from app.services import (
+from terminal_radio.core.config import Settings
+from terminal_radio.core.exceptions import RadioError
+from terminal_radio.enums import Band
+from terminal_radio.models import Station
+from terminal_radio.routers.stations import list_stations
+from terminal_radio.services import (
     CustomStationStore,
     HistoryLog,
     PersistedState,

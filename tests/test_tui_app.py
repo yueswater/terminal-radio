@@ -10,11 +10,11 @@ from rich.cells import cell_len
 from textual.content import Content
 from textual.widgets import Button, Input, Select, Static, TabbedContent, TabPane
 
-from app.core.config import Settings
-from app.core.i18n import LocaleRepository
-from app.enums import Band, PlaybackState
-from app.models import Station
-from app.services import (
+from terminal_radio.core.config import Settings
+from terminal_radio.core.i18n import LocaleRepository
+from terminal_radio.enums import Band, PlaybackState
+from terminal_radio.models import Station
+from terminal_radio.services import (
     HistoryLog,
     PersistedState,
     RadioService,
@@ -24,7 +24,7 @@ from app.services import (
     ThemeRepository,
     build_radio_service,
 )
-from app.tui.app import (
+from terminal_radio.tui.app import (
     FAVORITES_TAB,
     HISTORY_TAB,
     HOME_TAB,
@@ -32,7 +32,7 @@ from app.tui.app import (
     STATISTICS_TAB,
     RadioApp,
 )
-from app.tui.widgets import (
+from terminal_radio.tui.widgets import (
     HistoryTable,
     ListeningStatsPanel,
     SettingsTable,

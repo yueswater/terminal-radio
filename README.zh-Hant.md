@@ -1,11 +1,12 @@
-# Radio
+# Terminal Radio
 
 <p align="right">
-  <a href="README.md">English</a> · <strong>繁體中文</strong>
+  <a href="https://github.com/yueswater/terminal-radio/blob/main/README.md">English</a> · <strong>繁體中文</strong>
 </p>
 
 <p align="center">
-  <img src="assets/radio-logo.svg" width="600" alt="彩色漸層 RADIO ASCII Logo">
+  <img src="https://raw.githubusercontent.com/yueswater/terminal-radio/main/assets/terminal-radio-logo.svg" width="560"
+       alt="終端機畫面與 RADIO 字樣的彩色漸層 ASCII Logo">
 </p>
 
 ![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-3fb950?style=flat-square&logo=apple&logoColor=white) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)
@@ -33,13 +34,21 @@ sudo pacman -S mpv
 ## 安裝
 
 ```sh
-make link      # uv tool install --editable . --force
+uv tool install git+https://github.com/yueswater/terminal-radio
 ```
 
-這會直接將 `radio` 指令裝進 PATH，之後從任何目錄都能執行。此為開發模式安裝，修改專案內容後會直接生效，毋需重新安裝；若要移除就跑
+這會把 `radio` 指令裝進 PATH，在任何目錄都能執行，**不需要 clone**。
+用 `pipx install git+https://github.com/yueswater/terminal-radio` 效果相同。
+
+要移除時執行 `uv tool uninstall terminal-radio`。
+
+### 開發用
+
+clone 之後以 editable 方式安裝，改動立即生效、不必重裝：
 
 ```sh
-make unlink
+make link      # uv tool install --editable . --force
+make unlink    # 移除
 ```
 
 ## 執行
@@ -83,21 +92,30 @@ radio --help
 
 如果表格的列數沒有超出畫面、但欄位太寬，滾輪向下會往右移，向上會往左移。若下方還有資料列，滾輪就維持一般的上下捲動。FM、AM、我的最愛、收聽紀錄和設定表格會使用相同的上下間距並置中；頁面本身不動，只有表格內容會捲動。
 
-我的最愛、音量、靜音、自動播放、斷線重連、電台檢查、語言、上次播放的電台和佈景主題都會記錄在 `.radio/state.json`。
+我的最愛、音量、靜音、自動播放、斷線重連、電台檢查、語言、上次播放的電台和佈景主題都會記錄在 `<狀態目錄>/state.json`。
 
 ## 設定檔
 
 | 檔案 | 內容 |
 | --- | --- |
-| `stations.toml` | 電台代號、名稱、頻段、頻率和串流網址 |
-| `themes.yml` | 所有配色及預設主題 |
-| `locales/*.yml` | 英文與繁體中文介面文字 |
+| `app/data/stations.toml` | 電台代號、名稱、頻段、頻率和串流網址 |
+| `app/data/themes.yml` | 所有配色及預設主題 |
+| `app/data/locales/*.yml` | 英文與繁體中文介面文字 |
 | `app/tui/radio.tcss` | 終端機介面版面 |
-| `.radio/history.jsonl` | 收聽紀錄，每個事件一列 JSON |
-| `.radio/state.json` | 我的最愛、音量、靜音、自動播放、動畫、語言、電台和主題 |
-| `.radio/custom-stations.toml` | 從設定頁新增的自訂電台 |
+| `<狀態目錄>/history.jsonl` | 收聽紀錄，每個事件一列 JSON |
+| `<狀態目錄>/state.json` | 我的最愛、音量、靜音、自動播放、動畫、語言、電台和主題 |
+| `<狀態目錄>/custom-stations.toml` | 從設定頁新增的自訂電台 |
 
-內建電台放在 `stations.toml`。若不想改專案檔，可從**設定**開啟**自訂電台**，直接新增、編輯或刪除本機電台；串流網址限 HTTP 或 HTTPS。要新增內建電台時，在 `stations.toml` 加上一個區塊：
+`<狀態目錄>` 是程式寫入的個人目錄，位於安裝目錄之外，升級或重裝都不會遺失紀錄：
+macOS 為 `~/Library/Application Support/terminal-radio`，Linux 為
+`~/.local/state/terminal-radio`。可用 `RADIO_DATA_DIR` 覆寫。
+
+內建的電台清單、佈景主題與語言檔是唯讀的。想用自己的版本又不動到安裝目錄，
+可以把 `stations.toml`、`themes.yml` 或 `locales/` 放進設定目錄——macOS 為
+`~/Library/Application Support/terminal-radio`，Linux 為 `~/.config/terminal-radio`
+——程式會優先讀取。
+
+內建電台放在 `app/data/stations.toml`。若不想改專案檔，可從**設定**開啟**自訂電台**，直接新增、編輯或刪除本機電台；串流網址限 HTTP 或 HTTPS。要新增內建電台時，在 `app/data/stations.toml` 加上一個區塊：
 
 ```toml
 [[stations]]
@@ -125,7 +143,7 @@ Radio 可檢查串流是否正常、緩慢或離線。自動檢查結果會快�
 
 ## 語言
 
-目前只內建 English 和繁體中文，分別放在 `locales/en.yml` 與 `locales/zh-Hant.yml`，預設為繁體中文。按 `w` 可在兩者之間切換，**設定**頁也會顯示目前語言。
+目前只內建 English 和繁體中文，分別放在 `app/data/locales/en.yml` 與 `app/data/locales/zh-Hant.yml`，預設為繁體中文。按 `w` 可在兩者之間切換，**設定**頁也會顯示目前語言。
 
 程式自己的文字都有翻譯；電台名稱、電台說明和節目名稱來自清單或串流資料，因此保留原文。若修改介面文案，兩份語系檔要一起更新。缺少翻譯鍵時會先回退到繁體中文，再顯示鍵名本身。
 
@@ -161,7 +179,7 @@ Radio 可檢查串流是否正常、緩慢或離線。自動檢查結果會快�
 
 ## 收聽紀錄
 
-每次工作階段開始、結束、播放、暫停和繼續，都會附帶時間寫入 `.radio/history.jsonl`。`play_ended` 會記錄總經過、暫停及斷線時間，實際收聽時間會扣除暫停與斷線重連。表格中的時間固定顯示為 `HH:MM:SS`。
+每次工作階段開始、結束、播放、暫停和繼續，都會附帶時間寫入 `<狀態目錄>/history.jsonl`。`play_ended` 會記錄總經過、暫停及斷線時間，實際收聽時間會扣除暫停與斷線重連。表格中的時間固定顯示為 `HH:MM:SS`。
 
 選擇**匯出 CSV**可儲存完整的電台收聽摘要，檔案使用 UTF-8 BOM，欄位名稱會依目前介面語言切換。選擇**清除收聽紀錄**並確認，即可刪除全部紀錄。
 
@@ -185,8 +203,8 @@ Radio 可檢查串流是否正常、緩慢或離線。自動檢查結果會快�
 
 ## 貢獻與安全性
 
-送出 PR 之前請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)。安全漏洞請依 [SECURITY.md](SECURITY.md) 私下回報，切勿開公開 issue。參與專案時請遵守[行為準則](CODE_OF_CONDUCT.md)。
+送出 PR 之前請先閱讀 [CONTRIBUTING.md](https://github.com/yueswater/terminal-radio/blob/main/CONTRIBUTING.md)。安全漏洞請依 [SECURITY.md](https://github.com/yueswater/terminal-radio/blob/main/SECURITY.md) 私下回報，切勿開公開 issue。參與專案時請遵守[行為準則](CODE_OF_CONDUCT.md)。
 
 ## 授權
 
-Radio 採用 [MIT License](LICENSE)。
+Radio 採用 [MIT License](https://github.com/yueswater/terminal-radio/blob/main/LICENSE)。

@@ -1,7 +1,7 @@
 # Common tasks for the radio project. Run make help to list them.
 
 .DEFAULT_GOAL := help
-.PHONY: help install link unlink run api docs clean
+.PHONY: help install link unlink run api docs logo clean
 
 help: ## Show every available target
 	@grep -E '^[a-z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -23,6 +23,9 @@ api: ## Start the HTTP API with autoreload
 
 docs: ## Open the interactive API documentation
 	open http://$(HOST):$(PORT)/docs
+
+logo: ## Redraw the README logo from scripts/render_logo.py
+	uv run python scripts/render_logo.py
 
 clean: ## Remove bytecode caches and build artifacts
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

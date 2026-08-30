@@ -8,14 +8,14 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from app.core.config import Settings, get_settings
-from app.core.exceptions import CatalogError, StationNotFoundError
-from app.enums import Band, StationHealth
-from app.models import Station
-from app.services import HistoryLog, RadioService, StateStore, StationCatalog, build_radio_service
-from app.services.custom_stations import CustomStationStore
-from app.services.station_library import StationLibrary
-from app.services.station_health import StationHealthService
+from terminal_radio.core.config import Settings, get_settings
+from terminal_radio.core.exceptions import CatalogError, StationNotFoundError
+from terminal_radio.enums import Band, StationHealth
+from terminal_radio.models import Station
+from terminal_radio.services import HistoryLog, RadioService, StateStore, StationCatalog, build_radio_service
+from terminal_radio.services.custom_stations import CustomStationStore
+from terminal_radio.services.station_library import StationLibrary
+from terminal_radio.services.station_health import StationHealthService
 
 
 def station(
@@ -93,7 +93,7 @@ url = "https://example.com/two"
         self.store.save((station(),))
         before = self.path.read_bytes()
 
-        with patch("app.services.custom_stations.os.replace", side_effect=OSError):
+        with patch("terminal_radio.services.custom_stations.os.replace", side_effect=OSError):
             with self.assertRaises(CatalogError):
                 self.store.save((station("custom-new", name="New"),))
 
@@ -380,7 +380,7 @@ class StationHealthServiceTests(unittest.TestCase):
         )
 
         with patch(
-            "app.services.station_health.ThreadPoolExecutor",
+            "terminal_radio.services.station_health.ThreadPoolExecutor",
             wraps=ThreadPoolExecutor,
         ) as executor:
             results = service.check_many(stations, force=True)

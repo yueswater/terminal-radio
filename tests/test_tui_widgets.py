@@ -7,11 +7,11 @@ import unittest
 from textual.app import App, ComposeResult
 from textual.widgets import Static
 
-from app.core.i18n import Locale, Translator
-from app.enums import Band, PlaybackState, StationHealth
-from app.models import PlayerStatus, Station
-from app.services import StationSummary
-from app.tui.widgets import HistoryTable, NowPlayingBar, SettingsTable, StationTable
+from terminal_radio.core.i18n import Locale, Translator
+from terminal_radio.enums import Band, PlaybackState, StationHealth
+from terminal_radio.models import PlayerStatus, Station
+from terminal_radio.services import StationSummary
+from terminal_radio.tui.widgets import HistoryTable, NowPlayingBar, SettingsTable, StationTable
 
 
 TRANSLATOR = Translator(Locale(code="en", name="English"))

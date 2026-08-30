@@ -9,26 +9,26 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from app.core.config import Settings, get_settings
-from app.core.exceptions import PlayerError
-from app.enums import Band, HistoryEventType, PlaybackState
-from app.models import HistoryEvent, PlayerStatus, Station
-from app.services import HistoryLog, PersistedState, RadioService, StateStore, StationCatalog
-from app.services.reconnect import ReconnectSchedule
-from app.services.sleep_timer import SleepTimer
+from terminal_radio.core.config import Settings, get_settings
+from terminal_radio.core.exceptions import PlayerError
+from terminal_radio.enums import Band, HistoryEventType, PlaybackState
+from terminal_radio.models import HistoryEvent, PlayerStatus, Station
+from terminal_radio.services import HistoryLog, PersistedState, RadioService, StateStore, StationCatalog
+from terminal_radio.services.reconnect import ReconnectSchedule
+from terminal_radio.services.sleep_timer import SleepTimer
 
 
 class PlaybackModelTests(unittest.TestCase):
     def tearDown(self) -> None:
         get_settings.cache_clear()
 
-    def test_enums_are_owned_by_app_enums(self) -> None:
+    def test_enums_are_owned_by_the_enums_package(self) -> None:
         self.assertEqual(Band.FM, "FM")
         self.assertEqual(HistoryEventType.PLAY_ENDED, "play_ended")
         self.assertEqual(PlaybackState.RECONNECTING, "reconnecting")
-        self.assertEqual(Band.__module__, "app.enums.station")
-        self.assertEqual(PlaybackState.__module__, "app.enums.playback")
-        self.assertEqual(HistoryEventType.__module__, "app.enums.history")
+        self.assertEqual(Band.__module__, "terminal_radio.enums.station")
+        self.assertEqual(PlaybackState.__module__, "terminal_radio.enums.playback")
+        self.assertEqual(HistoryEventType.__module__, "terminal_radio.enums.history")
 
     def test_reconnect_fields_have_backward_compatible_defaults(self) -> None:
         status = PlayerStatus()

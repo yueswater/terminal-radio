@@ -10,11 +10,12 @@ from pathlib import Path
 
 from rich.cells import cell_len
 
-from app.core.i18n import LocaleRepository
-from app.enums import Daypart, HistoryEventType
-from app.models import HistoryEvent
-from app.services import HistoryLog, StationCatalog, build_listening_statistics
-from app.tui.statistics import render_listening_statistics
+from terminal_radio.constants.config import default_locales_dir, default_stations_file
+from terminal_radio.core.i18n import LocaleRepository
+from terminal_radio.enums import Daypart, HistoryEventType
+from terminal_radio.models import HistoryEvent
+from terminal_radio.services import HistoryLog, StationCatalog, build_listening_statistics
+from terminal_radio.tui.statistics import render_listening_statistics
 
 
 def ended(
@@ -43,7 +44,7 @@ def ended(
 class ListeningStatisticsTests(unittest.TestCase):
     def test_every_builtin_station_has_a_concise_display_name(self) -> None:
         """The bundled catalog must never leave a ranking with a long raw name."""
-        stations = StationCatalog.from_file(Path("stations.toml")).all()
+        stations = StationCatalog.from_file(default_stations_file()).all()
 
         missing = [
             station.slug
@@ -176,7 +177,7 @@ class ListeningStatisticsTests(unittest.TestCase):
     def test_report_uses_unframed_vertical_charts_and_station_names(self) -> None:
         """Charts fill the page without decorative frames or redundant rank numbers."""
         translator = LocaleRepository.from_directory(
-            Path("locales"), "en"
+            default_locales_dir(), "en"
         ).translator("en")
         report = build_listening_statistics(
             (
@@ -274,7 +275,7 @@ class ListeningStatisticsTests(unittest.TestCase):
     def test_narrow_report_stacks_panels_without_overflow(self) -> None:
         """Compact terminals keep every chart inside the available width."""
         translator = LocaleRepository.from_directory(
-            Path("locales"), "zh-Hant"
+            default_locales_dir(), "zh-Hant"
         ).translator("zh-Hant")
         report = build_listening_statistics(
             (
@@ -318,7 +319,7 @@ class ListeningStatisticsTests(unittest.TestCase):
             "renderer must accept the available viewport height",
         )
         translator = LocaleRepository.from_directory(
-            Path("locales"), "en"
+            default_locales_dir(), "en"
         ).translator("en")
         report = build_listening_statistics(
             (
