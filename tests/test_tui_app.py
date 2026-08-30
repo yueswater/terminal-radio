@@ -134,7 +134,8 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 report = str(report_widget.render())
 
                 self.assertIn("聆聽統計", report)
-                self.assertIn(station.name[:8], report)
+                self.assertIn("警廣全國網", report)
+                self.assertNotIn(station.name, report)
                 self.assertLessEqual(
                     max(cell_len(line) for line in report.splitlines()),
                     report_widget.content_region.width,

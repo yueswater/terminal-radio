@@ -8,12 +8,6 @@ from rich.cells import cell_len, set_cell_size
 
 from app.constants.analytics import (
     BAR_GLYPH,
-    BOX_BOTTOM_LEFT,
-    BOX_BOTTOM_RIGHT,
-    BOX_TOP_LEFT,
-    BOX_TOP_RIGHT,
-    DASHED_HORIZONTAL,
-    DASHED_VERTICAL,
     DAYPART_ORDER,
     LEGEND_MIN_COLUMN_WIDTH,
     RANKING_SLOT_MAX_WIDTH,
@@ -43,7 +37,7 @@ def render_listening_statistics(
     available_height = max(int(height), 20)
     if report.play_count == 0:
         return "\n".join(
-            _boxed_panel(
+            _section_panel(
                 t("stats.title"),
                 [t("stats.no_data")],
                 available_width,
@@ -55,21 +49,21 @@ def render_listening_statistics(
         min(VERTICAL_CHART_MAX_HEIGHT, (available_height - 8) // 5),
     )
     summary_body = _spread_entries(
-            (
-                f"{t('stats.total')} {format_clock(report.total_listened_seconds)}",
-                f"{t('stats.plays')} {report.play_count}",
-                f"{t('stats.active_days')} {report.active_days}",
-                f"{t('stats.longest')} {format_clock(report.longest_session_seconds)}",
-                f"{t('stats.average')} {format_clock(report.average_session_seconds)}",
-            ),
-            available_width - 4,
-        )
-    lines = _boxed_panel(t("stats.title"), summary_body, available_width)
+        (
+            f"{t('stats.total')} {format_clock(report.total_listened_seconds)}",
+            f"{t('stats.plays')} {report.play_count}",
+            f"{t('stats.active_days')} {report.active_days}",
+            f"{t('stats.longest')} {format_clock(report.longest_session_seconds)}",
+            f"{t('stats.average')} {format_clock(report.average_session_seconds)}",
+        ),
+        available_width - 2,
+    )
+    lines = _section_panel(t("stats.title"), summary_body, available_width)
 
-    ranking_width = available_width - 4
+    ranking_width = available_width - 2
     ranking = [
-        (f"{index:02d}", item.listened_seconds)
-        for index, item in enumerate(report.top_stations, start=1)
+        (item.station_name, item.listened_seconds)
+        for item in report.top_stations
     ]
     ranking_body = _vertical_chart(
         ranking,
@@ -78,20 +72,11 @@ def render_listening_statistics(
         value_formatter=format_clock,
         max_slot_width=RANKING_SLOT_MAX_WIDTH,
     )
-    ranking_body.extend(
-        _entry_grid(
-            tuple(
-                f"{index:02d} {item.station_name}  {format_clock(item.listened_seconds)}"
-                for index, item in enumerate(report.top_stations, start=1)
-            ),
-            ranking_width,
-        )
+    lines.extend(
+        ("", *_section_panel(t("stats.top_stations"), ranking_body, available_width))
     )
-    lines.extend(("", *_boxed_panel(
-        t("stats.top_stations"), ranking_body, available_width
-    )))
 
-    trend_width = available_width - 4
+    trend_width = available_width - 2
     trend = [
         (point.day.strftime("%d"), point.seconds)
         for point in report.daily_trend
@@ -107,9 +92,7 @@ def render_listening_statistics(
             trend_width,
         )
     )
-    lines.extend(("", *_boxed_panel(
-        t("stats.trend"), trend_body, available_width
-    )))
+    lines.extend(("", *_section_panel(t("stats.trend"), trend_body, available_width)))
 
     weekday_items = list(
         zip(
@@ -232,7 +215,7 @@ def _chart_panel(
     formatter: Callable[[float], str],
 ) -> list[str]:
     """Build one titled chart with a compact non-zero value legend."""
-    content_width = max(width - 4, 1)
+    content_width = max(width - 2, 1)
     active_entries = tuple(
         f"{label} {formatter(value)}" for label, value in items if value > 0
     )
@@ -240,31 +223,18 @@ def _chart_panel(
         *_vertical_chart(items, content_width, max(height - 1, 3)),
         *_entry_grid(active_entries, content_width, min_column_width=14),
     ]
-    return _boxed_panel(title, body, width)
+    return _section_panel(title, body, width)
 
 
-def _boxed_panel(title: str, body: Sequence[str], width: int) -> list[str]:
-    """Enclose one statistic in a full-width dashed terminal frame."""
-    frame_width = max(width, 8)
-    inner_width = frame_width - 4
-    title_room = frame_width - 4
-    fitted_title = set_cell_size(title, min(cell_len(title), title_room)).rstrip()
-    top_prefix = f"{BOX_TOP_LEFT}{DASHED_HORIZONTAL} {fitted_title} "
-    top = (
-        top_prefix
-        + DASHED_HORIZONTAL * max(frame_width - cell_len(top_prefix) - 1, 0)
-        + BOX_TOP_RIGHT
-    )
-    framed = [top]
+def _section_panel(title: str, body: Sequence[str], width: int) -> list[str]:
+    """Group one statistic with a quiet heading and consistent indentation."""
+    section_width = max(width, 4)
+    inner_width = section_width - 2
+    lines = [_fit(title, section_width)]
     for line in body:
         content = set_cell_size(_fit(line, inner_width), inner_width)
-        framed.append(f"{DASHED_VERTICAL} {content} {DASHED_VERTICAL}")
-    framed.append(
-        BOX_BOTTOM_LEFT
-        + DASHED_HORIZONTAL * (frame_width - 2)
-        + BOX_BOTTOM_RIGHT
-    )
-    return framed
+        lines.append(f"  {content}")
+    return lines
 
 
 def _combine_panels(

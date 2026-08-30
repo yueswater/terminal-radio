@@ -47,6 +47,7 @@ class StationLibrary:
                 (
                     item.dial,
                     item.name,
+                    item.short_name or "",
                     item.description or "",
                     item.band.value,
                 )

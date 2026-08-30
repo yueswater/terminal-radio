@@ -13,7 +13,7 @@ from rich.cells import cell_len
 from app.core.i18n import LocaleRepository
 from app.enums import Daypart, HistoryEventType
 from app.models import HistoryEvent
-from app.services import HistoryLog, build_listening_statistics
+from app.services import HistoryLog, StationCatalog, build_listening_statistics
 from app.tui.statistics import render_listening_statistics
 
 
@@ -41,6 +41,31 @@ def ended(
 
 
 class ListeningStatisticsTests(unittest.TestCase):
+    def test_every_builtin_station_has_a_concise_display_name(self) -> None:
+        """The bundled catalog must never leave a ranking with a long raw name."""
+        stations = StationCatalog.from_file(Path("stations.toml")).all()
+
+        missing = [
+            station.slug
+            for station in stations
+            if not (getattr(station, "short_name", None) or "").strip()
+        ]
+
+        self.assertEqual(missing, [])
+        self.assertEqual(
+            {
+                station.slug: getattr(station, "short_name", None)
+                for station in stations
+                if station.slug in {"pbs-national", "bcc-pop", "hitfm-taipei", "icrt"}
+            },
+            {
+                "pbs-national": "警廣全國網",
+                "bcc-pop": "i like radio",
+                "hitfm-taipei": "Hit FM",
+                "icrt": "ICRT",
+            },
+        )
+
     def test_statistics_use_completed_plays_and_local_calendar_buckets(self) -> None:
         """Totals, rankings, days, dayparts, and bands share one event source."""
         today = date(2026, 8, 30)
@@ -94,6 +119,40 @@ class ListeningStatisticsTests(unittest.TestCase):
         self.assertEqual(report.daypart_seconds[Daypart.NIGHT], 200)
         self.assertEqual(report.band_seconds, {"FM": 140, "AM": 200})
 
+    def test_statistics_prefer_catalog_short_names_and_fall_back_to_history(self) -> None:
+        """Known stations use catalog aliases while custom stations retain their names."""
+        events = (
+            ended(
+                datetime(2026, 8, 30, 7, tzinfo=UTC),
+                "known",
+                "A Very Long Official Station Name",
+                "FM 90.1",
+                120,
+            ),
+            ended(
+                datetime(2026, 8, 30, 8, tzinfo=UTC),
+                "custom",
+                "My Local Radio",
+                "FM 90.3",
+                60,
+            ),
+        )
+
+        try:
+            report = build_listening_statistics(
+                events,
+                today=date(2026, 8, 30),
+                timezone=UTC,
+                station_short_names={"known": "Short Radio"},
+            )
+        except TypeError as error:
+            self.fail(f"statistics do not accept catalog short names: {error}")
+
+        self.assertEqual(
+            [item.station_name for item in report.top_stations],
+            ["Short Radio", "My Local Radio"],
+        )
+
     def test_history_read_all_is_not_limited_by_table_cap(self) -> None:
         """Analytics can consume the whole log while normal reads stay capped."""
         with tempfile.TemporaryDirectory() as directory:
@@ -114,8 +173,8 @@ class ListeningStatisticsTests(unittest.TestCase):
             self.assertEqual(len(log.read_all()), 5)
             self.assertEqual(len(log.summarize_all()), 5)
 
-    def test_report_uses_vertical_charts_and_fills_a_wide_page(self) -> None:
-        """Charts rise vertically, avoid divider rules, and use the full width."""
+    def test_report_uses_unframed_vertical_charts_and_station_names(self) -> None:
+        """Charts fill the page without decorative frames or redundant rank numbers."""
         translator = LocaleRepository.from_directory(
             Path("locales"), "en"
         ).translator("en")
@@ -153,10 +212,12 @@ class ListeningStatisticsTests(unittest.TestCase):
         self.assertIn("14-day trend", rendered)
         self.assertNotIn("═", rendered)
         self.assertNotRegex(rendered, "[▁▂▃▄▅▆▇]")
-        self.assertEqual(rendered.count("┌"), 6)
-        self.assertEqual(rendered.count("└"), 6)
-        self.assertIn("┄", rendered)
-        self.assertIn("┆", rendered)
+        for frame_character in "┌┐└┘┄┆":
+            self.assertNotIn(frame_character, rendered)
+        self.assertNotIn("01 Alpha", rendered)
+        self.assertNotIn("02 Bravo", rendered)
+        self.assertEqual(rendered.count("Alpha"), 1)
+        self.assertEqual(rendered.count("Bravo"), 1)
         self.assertEqual(max(cell_len(line) for line in lines), 120)
         self.assertTrue(
             any(
@@ -169,22 +230,22 @@ class ListeningStatisticsTests(unittest.TestCase):
         for label in ("Mon", "Wed", "Sun", "Afternoon", "Night", "AM"):
             self.assertIn(label, rendered)
 
-        ranking_border = next(
+        ranking_heading = next(
             index for index, line in enumerate(lines) if "Top 10 stations" in line
         )
         first_bar = next(
             index
-            for index, line in enumerate(lines[ranking_border + 1 :], ranking_border + 1)
+            for index, line in enumerate(lines[ranking_heading + 1 :], ranking_heading + 1)
             if "█" in line
         )
-        value_row = "\n".join(lines[ranking_border + 1 : first_bar])
+        value_row = "\n".join(lines[ranking_heading + 1 : first_bar])
         self.assertIn("00:02:00", value_row)
         self.assertIn("00:01:00", value_row)
 
         axis_index = next(
             index
-            for index, line in enumerate(lines[ranking_border + 1 :], ranking_border + 1)
-            if "01" in line and "02" in line and ":" not in line
+            for index, line in enumerate(lines[ranking_heading + 1 :], ranking_heading + 1)
+            if "Alpha" in line and "Bravo" in line and ":" not in line
         )
         bar_rows = lines[max(0, axis_index - 8) : axis_index]
         occupied_columns = [

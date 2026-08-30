@@ -130,7 +130,13 @@ class RadioService:
             for item in self.catalog.all()
             if wanted
             in " ".join(
-                (item.dial, item.name, item.description or "", item.band.value)
+                (
+                    item.dial,
+                    item.name,
+                    item.short_name or "",
+                    item.description or "",
+                    item.band.value,
+                )
             ).casefold()
         )
 
@@ -544,7 +550,14 @@ class RadioService:
 
     def listening_statistics(self) -> ListeningStatistics:
         """Aggregate the complete valid history for the statistics page."""
-        return build_listening_statistics(self._history.read_all())
+        short_names = {
+            station.slug: station.short_name
+            for station in self.catalog.all()
+            if station.short_name
+        }
+        return build_listening_statistics(
+            self._history.read_all(), station_short_names=short_names
+        )
 
     def _elapsed_seconds(self) -> float:
         """Return the wall clock time since the current play entry started."""

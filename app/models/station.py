@@ -21,6 +21,7 @@ class Station(BaseModel):
         description="Stable identifier used by the API and the UI",
     )
     name: str = Field(min_length=1, max_length=80)
+    short_name: str | None = Field(default=None, min_length=1, max_length=40)
     band: Band
     url: str = Field(min_length=1)
     frequency: str | None = Field(default=None, max_length=20)

@@ -13,6 +13,7 @@ class StationRead(BaseModel):
 
     slug: str
     name: str
+    short_name: str | None = None
     band: Band
     dial: str
     url: str

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
 
@@ -48,9 +48,11 @@ def build_listening_statistics(
     *,
     today: date | None = None,
     timezone: tzinfo | None = None,
+    station_short_names: Mapping[str, str] | None = None,
 ) -> ListeningStatistics:
     """Build statistics from completed plays, using local end times."""
     local_timezone = timezone or datetime.now().astimezone().tzinfo or UTC
+    short_names = station_short_names or {}
     local_today = today or datetime.now(local_timezone).date()
     first_trend_day = local_today - timedelta(days=TREND_DAYS - 1)
     daily = {
@@ -80,7 +82,10 @@ def build_listening_statistics(
 
     top_stations = tuple(
         sorted(
-            (_summarize(slug, items) for slug, items in grouped.items()),
+            (
+                _summarize(slug, items, short_names.get(slug))
+                for slug, items in grouped.items()
+            ),
             key=lambda item: item.listened_seconds,
             reverse=True,
         )[:TOP_STATIONS_LIMIT]
@@ -131,11 +136,15 @@ def _band(dial: str | None) -> str:
     return OTHER_BAND
 
 
-def _summarize(slug: str, events: list[HistoryEvent]) -> StationSummary:
+def _summarize(
+    slug: str,
+    events: list[HistoryEvent],
+    short_name: str | None = None,
+) -> StationSummary:
     newest = max(events, key=lambda event: event.at)
     return StationSummary(
         station_slug=slug,
-        station_name=newest.station_name or slug,
+        station_name=short_name or newest.station_name or slug,
         station_dial=newest.station_dial,
         play_count=len(events),
         listened_seconds=sum(event.listened_seconds for event in events),

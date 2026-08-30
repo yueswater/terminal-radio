@@ -181,6 +181,7 @@ class RadioServiceResilienceTests(unittest.TestCase):
         self.station = Station(
             slug="station",
             name="Station",
+            short_name="Short Station",
             band=Band.FM,
             frequency="99.9",
             url="https://example.com/radio",
@@ -203,6 +204,23 @@ class RadioServiceResilienceTests(unittest.TestCase):
             sleep_timer=SleepTimer(self.clock),
             clock=self.clock,
         )
+
+    def test_listening_statistics_use_the_catalog_short_name(self) -> None:
+        """Existing history adopts the current alias without rewriting the log."""
+        self.history.append(
+            HistoryEvent(
+                at=datetime(2026, 8, 30, tzinfo=UTC),
+                type=HistoryEventType.PLAY_ENDED,
+                station_slug="station",
+                station_name="An Older Long Station Name",
+                station_dial="FM 99.9",
+                duration_seconds=60,
+            )
+        )
+
+        report = self.service.listening_statistics()
+
+        self.assertEqual(report.top_stations[0].station_name, "Short Station")
 
     def tearDown(self) -> None:
         self.directory.cleanup()
