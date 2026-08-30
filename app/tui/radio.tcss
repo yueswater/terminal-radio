@@ -59,8 +59,7 @@ TabPane {
     overflow-y: auto;
 }
 
-Button.-style-default:focus,
-Button.-style-flat:focus {
+Button:focus {
     text-style: bold;
 }
 
@@ -130,6 +129,12 @@ DataTable > .datatable--cursor {
     color: $text-muted;
 }
 
+#np-sleep {
+    width: 18;
+    text-align: right;
+    color: $warning;
+}
+
 #np-volume {
     width: 22;
     text-align: right;
@@ -143,9 +148,58 @@ DataTable > .datatable--cursor {
     color: $warning;
 }
 
+#now-playing.reconnecting #np-state {
+    color: $warning;
+}
+
 ConfirmationScreen {
     align: center middle;
     background: $background 70%;
+}
+
+SleepTimerScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#sleep-dialog {
+    width: 64;
+    max-width: 90%;
+    height: auto;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#sleep-title {
+    text-style: bold;
+    text-align: center;
+}
+
+#sleep-current {
+    color: $text-muted;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#sleep-presets, #sleep-actions {
+    height: 3;
+    align-horizontal: center;
+}
+
+#sleep-presets Button, #sleep-actions Button {
+    min-width: 10;
+    margin: 0 1;
+}
+
+#sleep-custom {
+    margin-top: 1;
+}
+
+#sleep-error {
+    height: 1;
+    color: $error;
+    text-align: center;
 }
 
 #confirm-dialog {

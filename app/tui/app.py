@@ -25,12 +25,13 @@ from app.services import (
     read_preferences,
     write_export,
 )
-from app.tui.formatting import format_path
+from app.tui.formatting import format_duration, format_path
 from app.tui.screens import (
     ConfirmationScreen,
     ExportScreen,
     GoodbyeScreen,
     ImportScreen,
+    SleepTimerScreen,
 )
 from app.tui.theming import register_themes, resolve_theme_name
 from app.tui.widgets import (
@@ -290,6 +291,24 @@ class RadioApp(App[None]):
                     self.t("note.toggle"),
                 ),
                 (
+                    "reconnect",
+                    self.t("settings.reconnect"),
+                    state(self._service.auto_reconnect),
+                    self.t("note.toggle"),
+                ),
+                (
+                    "sleep_timer",
+                    self.t("settings.sleep_timer"),
+                    (
+                        self.t("value.off")
+                        if self._service.sleep_remaining_seconds() is None
+                        else format_duration(
+                            self._service.sleep_remaining_seconds() or 0
+                        )
+                    ),
+                    self.t("note.sleep_timer"),
+                ),
+                (
                     "language",
                     self.t("settings.language"),
                     self.t.locale.name,
@@ -449,6 +468,7 @@ class RadioApp(App[None]):
         restored = self._service.reset_settings(
             autoplay=self._settings.autoplay_last_station,
             animations=self._settings.enable_animations,
+            auto_reconnect=self._settings.auto_reconnect,
             locale=self._locales.default_code,
             theme_name=self._themes.default_name,
         )
@@ -479,6 +499,23 @@ class RadioApp(App[None]):
                 ),
                 timeout=2,
             )
+        elif key == "reconnect":
+            enabled = self._service.set_auto_reconnect(
+                not self._service.auto_reconnect
+            )
+            self.refresh_settings()
+            self.notify(
+                self.t(
+                    "notify.reconnect",
+                    state=self.t(f"value.{'on' if enabled else 'off'}"),
+                ),
+                timeout=2,
+            )
+        elif key == "sleep_timer":
+            self.push_screen(
+                SleepTimerScreen(self.t, self._service.sleep_remaining_seconds()),
+                self.finish_sleep_timer,
+            )
         elif key == "theme":
             self.action_cycle_theme()
         elif key == "language":
@@ -487,6 +524,17 @@ class RadioApp(App[None]):
             self.action_export()
         elif key == "import":
             self.action_import_settings()
+
+    def finish_sleep_timer(self, choice: int | str | None) -> None:
+        """Apply the sleep picker result and refresh both status surfaces."""
+        if choice is None:
+            return
+        minutes = None if choice == "off" else int(choice)
+        self._call_service(lambda: self._service.set_sleep_timer(minutes))
+        self.refresh_settings()
+        key = "notify.sleep_off" if minutes is None else "notify.sleep_set"
+        values = {} if minutes is None else {"minutes": minutes}
+        self.notify(self.t(key, **values), timeout=2)
 
     def action_activate(self) -> None:
         """Act on the highlighted row of the focused page."""

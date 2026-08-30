@@ -6,11 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from textual.widgets import Button, Static, TabbedContent, TabPane
+from textual.widgets import Button, Input, Static, TabbedContent, TabPane
 
 from app.core.config import Settings
 from app.core.i18n import LocaleRepository
-from app.models import Band, PlaybackState
+from app.enums import Band, PlaybackState
 from app.services import (
     HistoryLog,
     PersistedState,
@@ -75,6 +75,92 @@ class MemoryPlayer:
 
 
 class RadioAppTests(unittest.IsolatedAsyncioTestCase):
+    async def test_settings_toggle_reconnect_and_set_sleep_preset(self) -> None:
+        """Reconnect and the sleep timer are controlled from Settings."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            service = RadioService(
+                catalog=StationCatalog.from_file(settings.stations_file),
+                player=MemoryPlayer(),
+                history=HistoryLog(settings.history_file),
+                state=StateStore(settings.state_file),
+                autoplay_last_station=False,
+            )
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = SETTINGS_TAB
+                await pilot.pause()
+                table = app.query_one(SettingsTable)
+                self.assertEqual(table.get_cell("reconnect", "value"), "開")
+
+                table.move_cursor(row=table.get_row_index("reconnect"))
+                await pilot.press("enter")
+                self.assertFalse(service.auto_reconnect)
+                self.assertEqual(table.get_cell("reconnect", "value"), "關")
+
+                table.move_cursor(row=table.get_row_index("sleep_timer"))
+                await pilot.press("enter")
+                await pilot.click("#sleep-15")
+
+                remaining = service.sleep_remaining_seconds()
+                self.assertIsNotNone(remaining)
+                self.assertGreater(remaining or 0, 899)
+                self.assertIn("14:59", str(table.get_cell("sleep_timer", "value")))
+
+    async def test_custom_sleep_timer_rejects_invalid_minutes(self) -> None:
+        """Custom sleep minutes stay in range and keep invalid input visible."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            service = RadioService(
+                catalog=StationCatalog.from_file(settings.stations_file),
+                player=MemoryPlayer(),
+                history=HistoryLog(settings.history_file),
+                state=StateStore(settings.state_file),
+                autoplay_last_station=False,
+            )
+            app = RadioApp(
+                service,
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = SETTINGS_TAB
+                await pilot.pause()
+                table = app.query_one(SettingsTable)
+                table.move_cursor(row=table.get_row_index("sleep_timer"))
+                await pilot.press("enter")
+
+                field = app.screen.query_one("#sleep-custom", Input)
+                field.value = "0"
+                await pilot.click("#sleep-custom-submit")
+                self.assertTrue(str(app.screen.query_one("#sleep-error", Static).content))
+                self.assertIsNone(service.sleep_remaining_seconds())
+
+                field.value = "45"
+                await pilot.pause()
+                await pilot.press("enter")
+                self.assertGreater(service.sleep_remaining_seconds() or 0, 2699)
+
     async def test_history_and_settings_tables_reserve_twenty_four_centered_rows(
         self,
     ) -> None:
@@ -404,6 +490,7 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                     muted=True,
                     autoplay_last_station=False,
                     enable_animations=True,
+                    auto_reconnect=False,
                     locale="en",
                 )
             )
@@ -446,6 +533,7 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(restored.muted)
                 self.assertTrue(restored.autoplay_last_station)
                 self.assertFalse(restored.enable_animations)
+                self.assertTrue(restored.auto_reconnect)
                 self.assertEqual(restored.locale, "zh-Hant")
                 self.assertEqual(restored.theme_name, "sonic")
                 self.assertEqual(restored.favorites, [station.slug])

@@ -29,11 +29,13 @@ STATE_GLYPHS = {
     PlaybackState.PLAYING: "▶",
     PlaybackState.PAUSED: "⏸",
     PlaybackState.STOPPED: "■",
+    PlaybackState.RECONNECTING: "↻",
 }
 STATE_KEYS = {
     PlaybackState.PLAYING: "player.playing",
     PlaybackState.PAUSED: "player.paused",
     PlaybackState.STOPPED: "player.stopped",
+    PlaybackState.RECONNECTING: "player.reconnecting",
 }
 
 LOGO = (
@@ -464,6 +466,7 @@ class NowPlayingBar(Vertical):
             yield Static(format_duration(0), id="np-timer")
         with Horizontal(id="np-bottom"):
             yield Static(EMPTY, id="np-program")
+            yield Static("", id="np-sleep")
             yield Static("", id="np-device")
             yield Static("", id="np-volume")
 
@@ -504,6 +507,14 @@ class NowPlayingBar(Vertical):
         self.query_one("#np-program", Static).update(
             f"♪ {status.program}" if status.program else EMPTY
         )
+        self.query_one("#np-sleep", Static).update(
+            ""
+            if status.sleep_remaining_seconds is None
+            else self.t(
+                "player.sleep",
+                duration=format_duration(status.sleep_remaining_seconds),
+            )
+        )
         self.query_one("#np-device", Static).update(
             truncate(status.device, DEVICE_NAME_LIMIT) if status.device else EMPTY
         )
@@ -511,6 +522,7 @@ class NowPlayingBar(Vertical):
 
         self.set_class(status.state is PlaybackState.PLAYING, "playing")
         self.set_class(status.is_paused, "paused")
+        self.set_class(status.state is PlaybackState.RECONNECTING, "reconnecting")
 
 
 class KeyHintBar(Static):

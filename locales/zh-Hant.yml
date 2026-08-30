@@ -27,9 +27,11 @@ messages:
   player.playing: 播放中
   player.paused: 已暫停
   player.stopped: 已停止
+  player.reconnecting: 重連中
   player.no_station: 未選擇電台
   player.muted: 靜音
   player.volume: 音量
+  player.sleep: "睡眠 {duration}"
 
   column.dial: 頻率
   column.station: 電台
@@ -43,6 +45,8 @@ messages:
   column.note: 說明
 
   settings.autoplay: 自動播放
+  settings.reconnect: 斷線重連
+  settings.sleep_timer: 睡眠計時
   settings.theme: 主題
   settings.animations: 動畫
   settings.language: 語言
@@ -56,6 +60,7 @@ messages:
   settings.data_dir: 資料目錄
 
   note.toggle: enter 切換
+  note.sleep_timer: enter 設定
   note.theme: enter 輪播
   note.animations: enter 切換
   note.language: enter 或 w
@@ -72,6 +77,9 @@ messages:
   notify.theme: "佈景主題：{name}"
   notify.language: "介面語言：{name}"
   notify.autoplay: "啟動時自動播放：{state}"
+  notify.reconnect: "斷線重連：{state}"
+  notify.sleep_set: "{minutes} 分鐘後停止"
+  notify.sleep_off: 已關閉睡眠計時
   notify.animations: "動畫效果：{state}"
   notify.favorite_added: "已將 {name} 加入我的最愛"
   notify.favorite_removed: "已將 {name} 移出我的最愛"
@@ -85,6 +93,14 @@ messages:
   settings.reset: 恢復預設
   confirm.reset_settings: 恢復預設？
   notify.settings_reset: 已恢復預設
+
+  sleep.title: 睡眠計時
+  sleep.off: 關閉
+  sleep.remaining: "剩餘 {duration}"
+  sleep.minutes: "{minutes} 分"
+  sleep.custom_placeholder: 自訂分鐘（1–1440）
+  sleep.set: 設定
+  sleep.invalid: 請輸入 1–1440 分鐘
 
   home.tagline: 臺灣終端機收音機
   home.hint: 用左右鍵切換分頁，Enter 播放

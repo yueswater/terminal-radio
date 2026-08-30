@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
-from textual.widgets import Button, ListItem, ListView, Static
+from textual.widgets import Button, Input, ListItem, ListView, Static
 
 from app.core.i18n import Translator
 from app.services import export_filename
@@ -74,6 +75,92 @@ class ConfirmationScreen(ModalScreen[bool]):
     def action_cancel(self) -> None:
         """Close the dialog without changing anything."""
         self.dismiss(False)
+
+
+class SleepTimerScreen(ModalScreen[int | Literal["off"] | None]):
+    """Centered picker for preset or custom sleep timer durations."""
+
+    BINDINGS = [Binding("escape", "cancel", "Cancel", show=False)]
+
+    def __init__(self, translator: Translator, remaining_seconds: float | None) -> None:
+        super().__init__()
+        self.t = translator
+        self._remaining = remaining_seconds
+
+    def compose(self) -> ComposeResult:
+        """Lay out presets and the validated custom-minute field."""
+        with Vertical(id="sleep-dialog"):
+            yield Static(self.t("sleep.title"), id="sleep-title")
+            current = (
+                self.t("sleep.off")
+                if self._remaining is None
+                else self.t(
+                    "sleep.remaining", duration=format_clock(self._remaining)
+                )
+            )
+            yield Static(current, id="sleep-current")
+            with Horizontal(id="sleep-presets"):
+                yield Button(self.t("sleep.off"), id="sleep-off", compact=True)
+                for minutes in (15, 30, 60):
+                    yield Button(
+                        self.t("sleep.minutes", minutes=minutes),
+                        id=f"sleep-{minutes}",
+                        compact=True,
+                    )
+            yield Input(
+                placeholder=self.t("sleep.custom_placeholder"),
+                type="integer",
+                id="sleep-custom",
+            )
+            yield Static("", id="sleep-error")
+            with Horizontal(id="sleep-actions"):
+                yield Button(self.t("confirm.cancel"), id="sleep-cancel", compact=True)
+                yield Button(
+                    self.t("sleep.set"),
+                    variant="primary",
+                    id="sleep-custom-submit",
+                    compact=True,
+                )
+
+    def on_mount(self) -> None:
+        """Focus the first preset for quick keyboard use."""
+        self.query_one("#sleep-off", Button).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Return a preset, cancellation, or validated custom minutes."""
+        event.stop()
+        button_id = event.button.id or ""
+        if button_id == "sleep-cancel":
+            self.dismiss(None)
+        elif button_id == "sleep-off":
+            self.dismiss("off")
+        elif button_id in {"sleep-15", "sleep-30", "sleep-60"}:
+            self.dismiss(int(button_id.removeprefix("sleep-")))
+        elif button_id == "sleep-custom-submit":
+            self._submit_custom()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Treat Enter in the custom field as pressing Set."""
+        if event.input.id == "sleep-custom":
+            event.stop()
+            self._submit_custom()
+
+    def _submit_custom(self) -> None:
+        """Validate and return one through 1440 minutes."""
+        field = self.query_one("#sleep-custom", Input)
+        try:
+            minutes = int(field.value)
+        except ValueError:
+            minutes = 0
+        if not 1 <= minutes <= 1440:
+            self.query_one("#sleep-error", Static).update(self.t("sleep.invalid"))
+            field.focus()
+            return
+        self.dismiss(minutes)
+
+    def action_cancel(self) -> None:
+        """Close without changing the active timer."""
+        self.dismiss(None)
 
 
 class ExportScreen(ModalScreen[Path | None]):

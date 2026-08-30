@@ -27,9 +27,11 @@ messages:
   player.playing: LIVE
   player.paused: PAUSED
   player.stopped: STOPPED
+  player.reconnecting: RECONNECTING
   player.no_station: No station
   player.muted: MUT
   player.volume: VOL
+  player.sleep: "Sleep {duration}"
 
   column.dial: Dial
   column.station: Station
@@ -43,6 +45,8 @@ messages:
   column.note: Notes
 
   settings.autoplay: Autoplay
+  settings.reconnect: Auto reconnect
+  settings.sleep_timer: Sleep timer
   settings.theme: Theme
   settings.animations: Animations
   settings.language: Language
@@ -56,6 +60,7 @@ messages:
   settings.data_dir: Data
 
   note.toggle: enter toggles
+  note.sleep_timer: enter sets
   note.theme: enter cycles
   note.animations: enter toggles
   note.language: enter or w
@@ -72,6 +77,9 @@ messages:
   notify.theme: "Theme: {name}"
   notify.language: "Language: {name}"
   notify.autoplay: "Autoplay {state}"
+  notify.reconnect: "Auto reconnect {state}"
+  notify.sleep_set: "Stops in {minutes} min"
+  notify.sleep_off: Sleep timer off
   notify.animations: "Animations {state}"
   notify.favorite_added: "Added {name} to favorites"
   notify.favorite_removed: "Removed {name} from favorites"
@@ -85,6 +93,14 @@ messages:
   settings.reset: Restore defaults
   confirm.reset_settings: Restore defaults?
   notify.settings_reset: Defaults restored
+
+  sleep.title: Sleep timer
+  sleep.off: "Off"
+  sleep.remaining: "Remaining {duration}"
+  sleep.minutes: "{minutes} min"
+  sleep.custom_placeholder: Custom minutes (1–1440)
+  sleep.set: Set
+  sleep.invalid: Enter 1–1440 minutes
 
   home.tagline: Terminal radio for Taiwan
   home.hint: Arrow keys switch tabs, enter plays

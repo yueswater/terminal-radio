@@ -327,6 +327,7 @@ class RadioService:
         *,
         autoplay: bool,
         animations: bool,
+        auto_reconnect: bool,
         locale: str,
         theme_name: str,
     ) -> PersistedState:
@@ -340,12 +341,16 @@ class RadioService:
                 "muted": defaults.muted,
                 "autoplay_last_station": autoplay,
                 "enable_animations": animations,
+                "auto_reconnect": auto_reconnect,
                 "locale": locale,
             }
         )
 
         self._autoplay = autoplay
         self._animations = animations
+        self._auto_reconnect = auto_reconnect
+        self._reconnect.reset()
+        self._sleep_timer.cancel()
         self._player.set_volume(restored.volume)
         self._player.set_muted(restored.muted)
         self._state.save(restored)
