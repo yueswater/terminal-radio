@@ -53,6 +53,9 @@ class ConfirmationScreen(ModalScreen[bool]):
 
     BINDINGS = [Binding("escape", "cancel", "Cancel", show=False)]
 
+    # Cancel takes the keyboard, so an accidental enter cannot confirm.
+    AUTO_FOCUS = "#confirm-cancel"
+
     def __init__(self, translator: Translator, question: str) -> None:
         super().__init__()
         self.t = translator
@@ -67,18 +70,6 @@ class ConfirmationScreen(ModalScreen[bool]):
                 yield Button(
                     self.t("confirm.accept"), variant="error", id="confirm-accept"
                 )
-
-    def on_mount(self) -> None:
-        """Focus cancel so an accidental enter cannot confirm the action.
-
-        The focus is taken after the next refresh, because on_mount can run
-        before compose has put the buttons on the screen.
-        """
-        self.call_after_refresh(self._focus_cancel)
-
-    def _focus_cancel(self) -> None:
-        """Put the keyboard on the safe button."""
-        self.query_one("#confirm-cancel", Button).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Return the user's answer to the caller."""

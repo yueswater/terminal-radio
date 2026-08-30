@@ -38,11 +38,16 @@ jobs:
             Windows) choco install mpv --no-progress -y ;;
           esac
 
-      # choco puts its shims somewhere the job's PATH was fixed before knowing.
+      # choco unpacks mpv into its own package directory rather than shimming
+      # it, and the job's PATH was fixed before that directory existed.
       - name: Put mpv on PATH
         if: runner.os == 'Windows'
         shell: bash
-        run: echo "C:\ProgramData\chocolatey\bin" >> "$GITHUB_PATH"
+        run: echo "C:\ProgramData\chocolatey\lib\mpvio.install\tools" >> "$GITHUB_PATH"
+
+      - name: Check mpv is reachable
+        shell: bash
+        run: mpv --version | head -1
 
       - name: Run the test suite
         shell: bash
