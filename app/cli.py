@@ -6,15 +6,14 @@ import argparse
 
 from app.core.about import get_version
 from app.core.config import Settings, get_settings
+from app.constants.about import PACKAGE
 from app.enums import Band
-
-PROGRAM = "radio"
 
 
 def build_parser(settings: Settings) -> argparse.ArgumentParser:
     """Build the argument parser, using settings for the displayed defaults."""
     parser = argparse.ArgumentParser(
-        prog=PROGRAM,
+        prog=PACKAGE,
         description="Terminal radio player. Run without arguments to open the UI.",
     )
     parser.add_argument("--version", action="version", version=get_version())

@@ -6,9 +6,11 @@ import json
 import subprocess
 import sys
 
-PROBE_TIMEOUT_SECONDS = 3.0
-MACOS_PROBE = ("system_profiler", "SPAudioDataType", "-json")
-DEFAULT_OUTPUT_FLAG = "spaudio_yes"
+from app.constants.audio import (
+    AUDIO_PROBE_TIMEOUT_SECONDS,
+    MACOS_AUDIO_PROBE,
+    MACOS_DEFAULT_OUTPUT_FLAG,
+)
 
 
 def detect_output_device() -> str | None:
@@ -22,10 +24,10 @@ def detect_output_device() -> str | None:
 
     try:
         result = subprocess.run(
-            MACOS_PROBE,
+            MACOS_AUDIO_PROBE,
             capture_output=True,
             text=True,
-            timeout=PROBE_TIMEOUT_SECONDS,
+            timeout=AUDIO_PROBE_TIMEOUT_SECONDS,
             check=False,
         )
         payload = json.loads(result.stdout)
@@ -34,7 +36,10 @@ def detect_output_device() -> str | None:
 
     for group in payload.get("SPAudioDataType", []):
         for item in group.get("_items", []):
-            if item.get("coreaudio_default_audio_output_device") == DEFAULT_OUTPUT_FLAG:
+            if (
+                item.get("coreaudio_default_audio_output_device")
+                == MACOS_DEFAULT_OUTPUT_FLAG
+            ):
                 name = item.get("_name")
                 return str(name) if name else None
     return None

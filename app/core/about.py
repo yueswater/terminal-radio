@@ -5,18 +5,12 @@ from __future__ import annotations
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
 
-PACKAGE = "radio"
-AUTHOR = "Anthony Sung"
-FIRST_YEAR = 2026
-HOMEPAGE = "https://github.com/anthonysung/radio"
-
-# Every role is a message key, so the about page follows the interface language.
-CREDITS = (
-    ("Textual", "credit.textual"),
-    ("FastAPI", "credit.fastapi"),
-    ("Pydantic", "credit.pydantic"),
-    ("mpv", "credit.mpv"),
-    ("radio-browser.info", "credit.radio_browser"),
+from app.constants.about import (
+    AUTHOR,
+    CREDITS,
+    FIRST_YEAR,
+    HOMEPAGE,
+    PACKAGE,
 )
 
 

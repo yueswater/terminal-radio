@@ -8,6 +8,7 @@ from datetime import datetime
 from collections.abc import Sequence
 from pathlib import Path
 
+from app.constants.transfer import CONFIG_EXPORT_SUFFIX, EXPORT_TIMESTAMP_FORMAT
 from app.core.about import get_version
 from app.core.config import Settings
 from app.core.exceptions import RadioError
@@ -15,10 +16,6 @@ from app.models import Station
 from pydantic import ValidationError
 
 from app.services.state import PersistedState
-
-FILE_SUFFIX = ".radio.config"
-TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S_%f"
-
 
 @dataclass(frozen=True)
 class ImportedConfiguration:
@@ -31,8 +28,8 @@ class ImportedConfiguration:
 def export_filename(moment: datetime | None = None) -> str:
     """Return the file name of an export, stamped down to the millisecond."""
     moment = moment or datetime.now()
-    stamp = moment.strftime(TIMESTAMP_FORMAT)[:-3]
-    return f"settings_{stamp}{FILE_SUFFIX}"
+    stamp = moment.strftime(EXPORT_TIMESTAMP_FORMAT)[:-3]
+    return f"settings_{stamp}{CONFIG_EXPORT_SUFFIX}"
 
 
 def build_document(
@@ -78,7 +75,7 @@ def find_config_files(directories: tuple[Path, ...]) -> tuple[Path, ...]:
     found: list[Path] = []
     for directory in directories:
         try:
-            found.extend(directory.glob(f"*{FILE_SUFFIX}"))
+            found.extend(directory.glob(f"*{CONFIG_EXPORT_SUFFIX}"))
         except OSError:
             continue
 

@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.core.exceptions import CatalogError, StationNotFoundError
-from app.enums import Band
+from app.enums import Band, StationHealth
 from app.models import Station
 from app.services import HistoryLog, RadioService, StateStore, StationCatalog, build_radio_service
 from app.services.custom_stations import CustomStationStore
 from app.services.station_library import StationLibrary
+from app.services.station_health import StationHealthService
 
 
 def station(
@@ -295,6 +297,126 @@ class RadioStationLibraryTests(unittest.TestCase):
         service = build_radio_service(settings)
 
         self.assertEqual(service.get_station("custom-loaded").name, "Loaded")
+
+
+class FakeResponse:
+    def __enter__(self) -> "FakeResponse":
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None
+
+    def read(self, size: int) -> bytes:
+        if size != 1:
+            raise AssertionError("health probe must read only one byte")
+        return b"x"
+
+
+class FakeOpener:
+    def __init__(
+        self,
+        clock: list[float],
+        *,
+        elapsed: float = 0.1,
+        error: Exception | None = None,
+    ) -> None:
+        self.clock = clock
+        self.elapsed = elapsed
+        self.error = error
+        self.calls = 0
+        self.requests: list[object] = []
+
+    def __call__(self, request: object, *, timeout: float) -> FakeResponse:
+        self.calls += 1
+        self.requests.append(request)
+        if timeout != 4:
+            raise AssertionError("health timeout changed")
+        self.clock[0] += self.elapsed
+        if self.error is not None:
+            raise self.error
+        return FakeResponse()
+
+
+class StationHealthServiceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.clock = [100.0]
+        self.station = station()
+
+    def test_online_slow_and_offline_results_use_ranged_get(self) -> None:
+        for elapsed, error, expected in (
+            (0.2, None, StationHealth.ONLINE),
+            (1.5, None, StationHealth.SLOW),
+            (0.1, TimeoutError(), StationHealth.OFFLINE),
+        ):
+            with self.subTest(expected=expected):
+                opener = FakeOpener(self.clock, elapsed=elapsed, error=error)
+                service = StationHealthService(opener=opener, clock=lambda: self.clock[0])
+                result = service.check(self.station)
+                self.assertEqual(result.health, expected)
+                request = opener.requests[0]
+                self.assertEqual(request.get_header("Range"), "bytes=0-0")
+
+    def test_cache_lives_five_minutes_and_force_bypasses_it(self) -> None:
+        opener = FakeOpener(self.clock)
+        service = StationHealthService(opener=opener, clock=lambda: self.clock[0])
+
+        first = service.check(self.station)
+        self.clock[0] += 299
+        self.assertIs(service.check(self.station), first)
+        self.assertEqual(opener.calls, 1)
+
+        service.check(self.station, force=True)
+        self.assertEqual(opener.calls, 2)
+        self.clock[0] += 300
+        service.check(self.station)
+        self.assertEqual(opener.calls, 3)
+
+    def test_batch_checks_use_no_more_than_four_workers(self) -> None:
+        opener = FakeOpener(self.clock, elapsed=0)
+        service = StationHealthService(opener=opener, clock=lambda: self.clock[0])
+        stations = tuple(
+            station(f"custom-{index}", name=f"Station {index}")
+            for index in range(8)
+        )
+
+        with patch(
+            "app.services.station_health.ThreadPoolExecutor",
+            wraps=ThreadPoolExecutor,
+        ) as executor:
+            results = service.check_many(stations, force=True)
+
+        executor.assert_called_once_with(max_workers=4)
+        self.assertEqual(len(results), 8)
+
+    def test_auto_health_defaults_on_and_has_environment_override(self) -> None:
+        self.assertTrue(Settings().auto_health_check)
+        with patch.dict("os.environ", {"RADIO_AUTO_HEALTH_CHECK": "false"}):
+            get_settings.cache_clear()
+            self.assertFalse(get_settings().auto_health_check)
+        get_settings.cache_clear()
+
+    def test_radio_service_persists_toggle_and_exposes_health_results(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            opener = FakeOpener(self.clock)
+            health = StationHealthService(
+                opener=opener, clock=lambda: self.clock[0]
+            )
+            state = StateStore(root / "state.json")
+            service = RadioService(
+                StationCatalog([self.station]),
+                MemoryPlayer(),
+                HistoryLog(root / "history.jsonl"),
+                state,
+                auto_health_check=True,
+                station_health=health,
+            )
+
+            self.assertTrue(service.auto_health_check)
+            self.assertFalse(service.set_auto_health_check(False))
+            self.assertFalse(state.load().auto_health_check)
+            result = service.check_station_health((self.station,), force=True)
+            self.assertEqual(result[0].health, StationHealth.ONLINE)
 
 
 if __name__ == "__main__":

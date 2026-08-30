@@ -10,18 +10,15 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-PACKAGE_DIR = Path(__file__).resolve().parent.parent
-PROJECT_DIR = PACKAGE_DIR.parent
-
-DEFAULT_STATIONS_FILE = PROJECT_DIR / "stations.toml"
-DEFAULT_THEMES_FILE = PROJECT_DIR / "themes.yml"
-DEFAULT_LOCALES_DIR = PROJECT_DIR / "locales"
-DEFAULT_LOCALE = "zh-Hant"
-DEFAULT_DATA_DIR = PROJECT_DIR / ".radio"
-# --no-terminal keeps mpv away from the shared terminal, so it never reads the
-# keys meant for the UI nor writes over it.
-DEFAULT_PLAYER_COMMAND = ("mpv", "--no-video", "--no-terminal")
-ENV_PREFIX = "RADIO_"
+from app.constants.config import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_LOCALE,
+    DEFAULT_LOCALES_DIR,
+    DEFAULT_PLAYER_COMMAND,
+    DEFAULT_STATIONS_FILE,
+    DEFAULT_THEMES_FILE,
+    ENV_PREFIX,
+)
 
 
 class Settings(BaseModel):
@@ -41,6 +38,7 @@ class Settings(BaseModel):
     goodbye_seconds: float = Field(default=1.4, ge=0)
     autoplay_last_station: bool = True
     auto_reconnect: bool = True
+    auto_health_check: bool = True
     # Off by default so interface changes stay immediate.
     enable_animations: bool = False
     api_host: str = "127.0.0.1"
@@ -106,6 +104,8 @@ def get_settings() -> Settings:
         overrides["autoplay_last_station"] = autoplay
     if (reconnect := _env_flag(f"{ENV_PREFIX}AUTO_RECONNECT")) is not None:
         overrides["auto_reconnect"] = reconnect
+    if (health := _env_flag(f"{ENV_PREFIX}AUTO_HEALTH_CHECK")) is not None:
+        overrides["auto_health_check"] = health
     if (animations := _env_flag(f"{ENV_PREFIX}ENABLE_ANIMATIONS")) is not None:
         overrides["enable_animations"] = animations
     if api_host := os.getenv(f"{ENV_PREFIX}API_HOST"):

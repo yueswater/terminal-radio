@@ -10,33 +10,19 @@ import time
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
+from app.constants.player import (
+    AUTO_DEVICE,
+    DEVICE_REFRESH_SECONDS,
+    MAX_VOLUME,
+    MIN_VOLUME,
+    OBSERVED_PROPERTIES,
+    PLAYER_SOCKET_TIMEOUT_SECONDS,
+    PLAYER_SOCKET_WAIT_SECONDS,
+    PLAYER_TERMINATE_TIMEOUT_SECONDS,
+    STREAM_ID_LENGTH,
+)
 from app.core.exceptions import PlayerError
 from app.services.audio import detect_output_device
-
-TERMINATE_TIMEOUT_SECONDS = 3.0
-SOCKET_WAIT_SECONDS = 5.0
-SOCKET_TIMEOUT_SECONDS = 0.5
-MIN_VOLUME = 0
-MAX_VOLUME = 130
-
-DEVICE_REFRESH_SECONDS = 15.0
-AUTO_DEVICE = "auto"
-
-OBSERVED_PROPERTIES = {
-    1: "media-title",
-    2: "metadata/by-key/icy-title",
-    3: "pause",
-    4: "volume",
-    5: "mute",
-    6: "audio-device",
-    7: "current-ao",
-    8: "filename",
-}
-
-# Some stations advertise their stream identifier as the title. Such a value has
-# no whitespace, is plain ASCII letters and digits, and is long enough that a
-# real title would not look like it.
-STREAM_ID_LENGTH = 10
 
 
 @runtime_checkable
@@ -206,7 +192,7 @@ class MpvPlayer:
 
         process.terminate()
         try:
-            process.wait(timeout=TERMINATE_TIMEOUT_SECONDS)
+            process.wait(timeout=PLAYER_TERMINATE_TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
@@ -317,10 +303,10 @@ class MpvPlayer:
 
     def _wait_for_socket(self) -> socket.socket | None:
         """Connect to the IPC socket, waiting for mpv to create it."""
-        deadline = time.monotonic() + SOCKET_WAIT_SECONDS
+        deadline = time.monotonic() + PLAYER_SOCKET_WAIT_SECONDS
         while not self._shutdown.is_set() and time.monotonic() < deadline:
             connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            connection.settimeout(SOCKET_TIMEOUT_SECONDS)
+            connection.settimeout(PLAYER_SOCKET_TIMEOUT_SECONDS)
             try:
                 connection.connect(str(self._ipc_socket))
                 return connection

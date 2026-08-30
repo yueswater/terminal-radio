@@ -13,6 +13,18 @@ from textual.timer import Timer
 from textual.widgets import Button, Static, TabbedContent, TabPane
 
 from app.core.config import Settings, get_settings
+from app.constants.tui import (
+    ABOUT_TAB,
+    COMPACT_WIDTH,
+    FAVORITES_TAB,
+    HISTORY_TAB,
+    HOME_TAB,
+    SETTINGS_TAB,
+    TAB_LABELS,
+    THEMES_TAB,
+    VOLUME_STEP,
+    WIDE_WIDTH,
+)
 from app.core.exceptions import RadioError
 from app.core.i18n import LocaleRepository, Translator
 from app.enums import Band
@@ -45,29 +57,6 @@ from app.tui.widgets import (
     StationTable,
     ThemeGallery,
 )
-
-HOME_TAB = "tab-home"
-FAVORITES_TAB = "tab-favorites"
-HISTORY_TAB = "tab-history"
-THEMES_TAB = "tab-themes"
-SETTINGS_TAB = "tab-settings"
-ABOUT_TAB = "tab-about"
-VOLUME_STEP = 5
-
-# Column layouts and the size of the word mark follow these terminal widths.
-COMPACT_WIDTH = 90
-WIDE_WIDTH = 150
-
-# Band tabs keep their own name, every other tab is translated.
-TAB_LABELS = {
-    HOME_TAB: "tab.home",
-    FAVORITES_TAB: "tab.favorites",
-    HISTORY_TAB: "tab.history",
-    THEMES_TAB: "tab.themes",
-    SETTINGS_TAB: "tab.settings",
-    ABOUT_TAB: "tab.about",
-}
-
 
 class RadioApp(App[None]):
     """Terminal UI listing stations per band and controlling playback."""
@@ -479,6 +468,7 @@ class RadioApp(App[None]):
             autoplay=self._settings.autoplay_last_station,
             animations=self._settings.enable_animations,
             auto_reconnect=self._settings.auto_reconnect,
+            auto_health_check=self._settings.auto_health_check,
             locale=self._locales.default_code,
             theme_name=self._themes.default_name,
         )

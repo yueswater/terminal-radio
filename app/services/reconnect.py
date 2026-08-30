@@ -5,6 +5,10 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Sequence
 
+from app.constants.playback import (
+    RECONNECT_DELAYS_SECONDS,
+    RECONNECT_STABLE_SECONDS,
+)
 
 class ReconnectSchedule:
     """Track retry deadlines and the post-restart stability window."""
@@ -12,8 +16,8 @@ class ReconnectSchedule:
     def __init__(
         self,
         clock: Callable[[], float] = time.monotonic,
-        delays: Sequence[float] = (1, 2, 4, 8, 15),
-        stable_seconds: float = 5,
+        delays: Sequence[float] = RECONNECT_DELAYS_SECONDS,
+        stable_seconds: float = RECONNECT_STABLE_SECONDS,
     ) -> None:
         if not delays or any(delay < 0 for delay in delays):
             raise ValueError("delays must contain non-negative values")

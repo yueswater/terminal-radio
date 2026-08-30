@@ -17,6 +17,7 @@ from app.services.reconnect import ReconnectSchedule
 from app.services.sleep_timer import SleepTimer
 from app.services.state import PersistedState, StateStore
 from app.services.station_library import StationLibrary
+from app.services.station_health import StationHealthService, StationHealthSnapshot
 
 
 class RadioService:
@@ -35,9 +36,12 @@ class RadioService:
         sleep_timer: SleepTimer | None = None,
         clock: Callable[[], float] = time.monotonic,
         station_library: StationLibrary | None = None,
+        auto_health_check: bool = True,
+        station_health: StationHealthService | None = None,
     ) -> None:
         self._catalog = catalog
         self._station_library = station_library
+        self._station_health = station_health or StationHealthService()
         self._player = player
         self._history = history
         self._state = state
@@ -59,6 +63,11 @@ class RadioService:
         )
         self._auto_reconnect = (
             auto_reconnect if stored.auto_reconnect is None else stored.auto_reconnect
+        )
+        self._auto_health_check = (
+            auto_health_check
+            if stored.auto_health_check is None
+            else stored.auto_health_check
         )
         self._favorites = list(stored.favorites)
         self._player.set_volume(stored.volume)
@@ -345,6 +354,33 @@ class RadioService:
                 self._reset_play()
         return self._auto_reconnect
 
+    @property
+    def auto_health_check(self) -> bool:
+        """Return whether active station tabs are checked automatically."""
+        return self._auto_health_check
+
+    def set_auto_health_check(self, enabled: bool) -> bool:
+        """Persist automatic station availability checks."""
+        self._auto_health_check = enabled
+        self._state.update(auto_health_check=enabled)
+        return self._auto_health_check
+
+    def station_health(self, slug: str) -> StationHealthSnapshot:
+        """Return the current non-blocking health snapshot for one station."""
+        self.catalog.get(slug)
+        return self._station_health.snapshot(slug)
+
+    def check_station_health(
+        self,
+        stations: tuple[Station, ...] | None = None,
+        *,
+        force: bool = False,
+    ) -> tuple[StationHealthSnapshot, ...]:
+        """Synchronously probe a station batch; callers run this off the UI thread."""
+        return self._station_health.check_many(
+            stations or self.catalog.all(), force=force
+        )
+
     def set_sleep_timer(self, minutes: int | None) -> PlayerStatus:
         """Set or cancel the session-only sleep timer."""
         self._sleep_timer.set_minutes(minutes)
@@ -408,11 +444,16 @@ class RadioService:
             merged = merged.model_copy(
                 update={"auto_reconnect": self._auto_reconnect}
             )
+        if merged.auto_health_check is None:
+            merged = merged.model_copy(
+                update={"auto_health_check": self._auto_health_check}
+            )
 
         self._favorites = favorites
         self._autoplay = bool(merged.autoplay_last_station)
         self._animations = bool(merged.enable_animations)
         self._auto_reconnect = bool(merged.auto_reconnect)
+        self._auto_health_check = bool(merged.auto_health_check)
         self._player.set_volume(merged.volume)
         self._player.set_muted(merged.muted)
 
@@ -435,6 +476,7 @@ class RadioService:
         autoplay: bool,
         animations: bool,
         auto_reconnect: bool,
+        auto_health_check: bool,
         locale: str,
         theme_name: str,
     ) -> PersistedState:
@@ -449,6 +491,7 @@ class RadioService:
                 "autoplay_last_station": autoplay,
                 "enable_animations": animations,
                 "auto_reconnect": auto_reconnect,
+                "auto_health_check": auto_health_check,
                 "locale": locale,
             }
         )
@@ -456,6 +499,7 @@ class RadioService:
         self._autoplay = autoplay
         self._animations = animations
         self._auto_reconnect = auto_reconnect
+        self._auto_health_check = auto_health_check
         self._reconnect.reset()
         self._sleep_timer.cancel()
         self._player.set_volume(restored.volume)
@@ -632,4 +676,5 @@ def build_radio_service(settings: Settings | None = None) -> RadioService:
         enable_animations=settings.enable_animations,
         auto_reconnect=settings.auto_reconnect,
         station_library=library,
+        auto_health_check=settings.auto_health_check,
     )

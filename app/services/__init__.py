@@ -17,6 +17,7 @@ from app.services.transfer import (
 )
 from app.services.state import PersistedState, StateStore
 from app.services.station_library import StationLibrary
+from app.services.station_health import StationHealthService, StationHealthSnapshot
 from app.services.themes import ThemeRepository
 
 __all__ = [
@@ -32,6 +33,8 @@ __all__ = [
     "SleepTimer",
     "StationCatalog",
     "StationLibrary",
+    "StationHealthService",
+    "StationHealthSnapshot",
     "StationSummary",
     "ThemeRepository",
     "build_radio_service",

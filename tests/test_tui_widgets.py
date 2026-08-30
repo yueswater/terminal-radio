@@ -8,10 +8,10 @@ from textual.app import App, ComposeResult
 from textual.widgets import Static
 
 from app.core.i18n import Locale, Translator
-from app.enums import Band, PlaybackState
+from app.enums import Band, PlaybackState, StationHealth
 from app.models import PlayerStatus, Station
 from app.services import StationSummary
-from app.tui.widgets import HistoryTable, NowPlayingBar, SettingsTable
+from app.tui.widgets import HistoryTable, NowPlayingBar, SettingsTable, StationTable
 
 
 TRANSLATOR = Translator(Locale(code="en", name="English"))
@@ -48,6 +48,34 @@ class NowPlayingApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield NowPlayingBar(PLAYER_TRANSLATOR)
+
+
+class StationTableApp(App[None]):
+    """Minimal mounted context for station health cells."""
+
+    def compose(self) -> ComposeResult:
+        yield StationTable(
+            Translator(
+                Locale(
+                    code="en",
+                    name="English",
+                    messages={
+                        "column.health": "Health",
+                        "column.dial": "Dial",
+                        "column.station": "Station",
+                        "column.info": "Info",
+                    },
+                )
+            ),
+            (
+                Station(
+                    slug="example",
+                    name="Example",
+                    band=Band.FM,
+                    url="https://example.com",
+                ),
+            ),
+        )
 
 
 class HistoryTableTests(unittest.IsolatedAsyncioTestCase):
@@ -124,3 +152,21 @@ class NowPlayingBarTests(unittest.IsolatedAsyncioTestCase):
                 str(pilot.app.query_one("#np-sleep", Static).content),
                 "Sleep 01:30",
             )
+
+
+class StationTableTests(unittest.IsolatedAsyncioTestCase):
+    async def test_health_glyph_updates_without_rebuilding_rows(self) -> None:
+        """Every health enum has a stable compact cell glyph."""
+        expected = {
+            StationHealth.UNKNOWN: "·",
+            StationHealth.CHECKING: "…",
+            StationHealth.ONLINE: "●",
+            StationHealth.SLOW: "◐",
+            StationHealth.OFFLINE: "×",
+        }
+        async with StationTableApp().run_test(size=(100, 12)) as pilot:
+            table = pilot.app.query_one(StationTable)
+            for health, glyph in expected.items():
+                table.set_health("example", health)
+                await pilot.pause()
+                self.assertEqual(table.get_cell("example", "health"), glyph)

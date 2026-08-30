@@ -19,6 +19,7 @@ class PersistedState(BaseModel):
     autoplay_last_station: bool | None = None
     enable_animations: bool | None = None
     auto_reconnect: bool | None = None
+    auto_health_check: bool | None = None
     locale: str | None = None
 
 

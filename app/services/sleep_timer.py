@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
+from app.constants.playback import SLEEP_MINUTES_MAX, SLEEP_MINUTES_MIN
 
 class SleepTimer:
     """Track one playback-stop deadline without starting a background thread."""
@@ -18,8 +19,10 @@ class SleepTimer:
         if minutes is None:
             self.cancel()
             return
-        if not 1 <= minutes <= 1440:
-            raise ValueError("minutes must be between 1 and 1440")
+        if not SLEEP_MINUTES_MIN <= minutes <= SLEEP_MINUTES_MAX:
+            raise ValueError(
+                f"minutes must be between {SLEEP_MINUTES_MIN} and {SLEEP_MINUTES_MAX}"
+            )
         self._deadline = self._clock() + minutes * 60
 
     def cancel(self) -> None:

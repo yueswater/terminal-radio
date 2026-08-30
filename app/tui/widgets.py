@@ -4,14 +4,24 @@ from __future__ import annotations
 
 from textual import events
 from textual.app import ComposeResult
-from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.widgets import DataTable, ListItem, ListView, Static
 
 from app.core import about
+from app.constants.tui import (
+    DEVICE_NAME_LIMIT,
+    EMPTY,
+    HEALTH_GLYPHS,
+    LOGO,
+    PAGE_NAVIGATION,
+    STAR,
+    STATE_GLYPHS,
+    STATE_KEYS,
+    TAB_NAVIGATION,
+)
 from app.core.i18n import Translator
-from app.enums import PlaybackState
+from app.enums import PlaybackState, StationHealth
 from app.models import PlayerStatus, Station, Theme
 from app.services import StationSummary
 from app.tui.formatting import (
@@ -20,30 +30,6 @@ from app.tui.formatting import (
     format_timestamp,
     format_volume,
     truncate,
-)
-
-EMPTY = "—"
-STAR = "★"
-DEVICE_NAME_LIMIT = 15
-STATE_GLYPHS = {
-    PlaybackState.PLAYING: "▶",
-    PlaybackState.PAUSED: "⏸",
-    PlaybackState.STOPPED: "■",
-    PlaybackState.RECONNECTING: "↻",
-}
-STATE_KEYS = {
-    PlaybackState.PLAYING: "player.playing",
-    PlaybackState.PAUSED: "player.paused",
-    PlaybackState.STOPPED: "player.stopped",
-    PlaybackState.RECONNECTING: "player.reconnecting",
-}
-
-LOGO = (
-    "██████   █████  ██████  ██  ██████ ",
-    "██   ██ ██   ██ ██   ██ ██ ██    ██",
-    "██████  ███████ ██   ██ ██ ██    ██",
-    "██   ██ ██   ██ ██   ██ ██ ██    ██",
-    "██   ██ ██   ██ ██████  ██  ██████ ",
 )
 
 def scale_ascii(lines: tuple[str, ...], factor: int) -> tuple[str, ...]:
@@ -56,22 +42,6 @@ def scale_ascii(lines: tuple[str, ...], factor: int) -> tuple[str, ...]:
         stretched = "".join(character * factor for character in line)
         scaled.extend([stretched] * factor)
     return tuple(scaled)
-
-
-TAB_NAVIGATION = [
-    Binding("left", "app.previous_tab", "Prev tab", show=False),
-    Binding("right", "app.next_tab", "Next tab", show=False),
-    Binding("k", "cursor_up", "Up", show=False),
-    Binding("j", "cursor_down", "Down", show=False),
-]
-
-# Scrolling pages have no cursor, so the vim keys move the viewport instead.
-PAGE_NAVIGATION = [
-    Binding("left", "app.previous_tab", "Prev tab", show=False),
-    Binding("right", "app.next_tab", "Next tab", show=False),
-    Binding("k", "scroll_up", "Up", show=False),
-    Binding("j", "scroll_down", "Down", show=False),
-]
 
 
 class NavigableTable(DataTable[str]):
@@ -129,6 +99,7 @@ class StationTable(NavigableTable):
         super().__init__(translator, **kwargs)
         self._stations: dict[str, Station] = {}
         self._favorites: frozenset[str] = frozenset()
+        self._health: dict[str, StationHealth] = {}
         self._pending = stations
 
     def on_mount(self) -> None:
@@ -139,6 +110,7 @@ class StationTable(NavigableTable):
     def _add_columns(self) -> None:
         """Add the header row in the current language."""
         self.add_column(STAR, width=3, key="favorite")
+        self.add_column(self.t("column.health"), width=6, key="health")
         self.add_column(self.t("column.dial"), width=10, key="dial")
         self.add_column(
             self.t("column.station"), width=self.scaled(0.34, 18, 52), key="station"
@@ -171,6 +143,9 @@ class StationTable(NavigableTable):
         for station in stations:
             self.add_row(
                 STAR if station.slug in favorites else "",
+                HEALTH_GLYPHS[
+                    self._health.get(station.slug, StationHealth.UNKNOWN)
+                ],
                 station.dial,
                 station.name,
                 station.description or "",
@@ -190,6 +165,12 @@ class StationTable(NavigableTable):
             self._favorites | {slug} if favorite else self._favorites - {slug}
         )
         self.update_cell(slug, "favorite", STAR if favorite else "")
+
+    def set_health(self, slug: str, health: StationHealth) -> None:
+        """Update one station's cached health glyph in place."""
+        self._health[slug] = health
+        if slug in self._stations:
+            self.update_cell(slug, "health", HEALTH_GLYPHS[health])
 
     def focus_station(self, slug: str) -> None:
         """Move the cursor onto the given station when it belongs to this table."""

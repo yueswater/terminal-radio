@@ -1,0 +1,6 @@
+"""Playback recovery and timer boundaries."""
+
+RECONNECT_DELAYS_SECONDS = (1.0, 2.0, 4.0, 8.0, 15.0)
+RECONNECT_STABLE_SECONDS = 5.0
+SLEEP_MINUTES_MIN = 1
+SLEEP_MINUTES_MAX = 1440
