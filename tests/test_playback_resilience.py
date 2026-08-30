@@ -9,6 +9,7 @@ from unittest.mock import patch
 from app.core.config import Settings, get_settings
 from app.enums import Band, HistoryEventType, PlaybackState
 from app.models import PlayerStatus
+from app.services.reconnect import ReconnectSchedule
 from app.services.sleep_timer import SleepTimer
 
 
@@ -56,6 +57,44 @@ class SleepTimerTests(unittest.TestCase):
         for value in (0, 1441):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 self.timer.set_minutes(value)
+
+
+class ReconnectScheduleTests(unittest.TestCase):
+    def test_uses_each_delay_once_then_exhausts(self) -> None:
+        now = [10.0]
+        schedule = ReconnectSchedule(lambda: now[0])
+        schedule.start()
+
+        for expected_attempt, delay in enumerate((1, 2, 4, 8, 15), start=1):
+            now[0] += delay
+            self.assertTrue(schedule.ready)
+            self.assertEqual(schedule.record_attempt(), expected_attempt)
+            self.assertEqual(schedule.record_failure(), expected_attempt < 5)
+
+        self.assertFalse(schedule.active)
+
+    def test_success_requires_five_stable_seconds(self) -> None:
+        now = [0.0]
+        schedule = ReconnectSchedule(lambda: now[0])
+        schedule.start()
+        now[0] = 1.0
+        schedule.record_attempt()
+        now[0] = 5.9
+        self.assertFalse(schedule.stable)
+        now[0] = 6.0
+        self.assertTrue(schedule.stable)
+
+    def test_reset_clears_every_phase(self) -> None:
+        now = [0.0]
+        schedule = ReconnectSchedule(lambda: now[0])
+        schedule.start()
+        now[0] = 1.0
+        schedule.record_attempt()
+        schedule.reset()
+        self.assertFalse(schedule.active)
+        self.assertFalse(schedule.ready)
+        self.assertFalse(schedule.stabilizing)
+        self.assertEqual(schedule.attempt, 0)
 
 
 if __name__ == "__main__":
