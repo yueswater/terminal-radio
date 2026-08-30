@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 from app.core.config import Settings, get_settings
-from app.core.exceptions import StationNotFoundError
+from app.core.exceptions import PlayerError, StationNotFoundError
 from app.enums import Band, HistoryEventType, PlaybackState
 from app.models import HistoryEvent, PlayerStatus, Station
 from app.services.catalog import StationCatalog
 from app.services.history import HistoryLog, StationSummary, build_event
 from app.services.player import MpvPlayer, Player
+from app.services.reconnect import ReconnectSchedule
+from app.services.sleep_timer import SleepTimer
 from app.services.state import PersistedState, StateStore
 
 
@@ -25,11 +28,18 @@ class RadioService:
         state: StateStore,
         autoplay_last_station: bool = True,
         enable_animations: bool = False,
+        auto_reconnect: bool = True,
+        reconnect: ReconnectSchedule | None = None,
+        sleep_timer: SleepTimer | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._catalog = catalog
         self._player = player
         self._history = history
         self._state = state
+        self._clock = clock
+        self._reconnect = reconnect or ReconnectSchedule(clock)
+        self._sleep_timer = sleep_timer or SleepTimer(clock)
 
         # A choice made on the settings page outlives the environment default.
         stored = state.load()
@@ -43,6 +53,9 @@ class RadioService:
             if stored.enable_animations is None
             else stored.enable_animations
         )
+        self._auto_reconnect = (
+            auto_reconnect if stored.auto_reconnect is None else stored.auto_reconnect
+        )
         self._favorites = list(stored.favorites)
         self._player.set_volume(stored.volume)
         self._player.set_muted(stored.muted)
@@ -52,6 +65,8 @@ class RadioService:
         self._started_at: float | None = None
         self._paused_at: float | None = None
         self._paused_total = 0.0
+        self._interrupted_at: float | None = None
+        self._interrupted_total = 0.0
 
     @property
     def catalog(self) -> StationCatalog:
@@ -113,34 +128,31 @@ class RadioService:
 
     def status(self) -> PlayerStatus:
         """Return the playback status, reconciled with the backend process."""
+        if self._sleep_timer.expired():
+            return self.stop()
+
         if not self._player.is_running:
-            self._reset_play()
-            return PlayerStatus(
-                volume=self._player.volume,
-                muted=self._player.is_muted,
-                device=self._player.device(),
-            )
+            return self._status_for_stopped_player()
+
+        if self._reconnect.stabilizing:
+            if self._reconnect.stable:
+                self._reconnect.reset()
+            else:
+                return self._player_status(PlaybackState.RECONNECTING)
 
         state = PlaybackState.PAUSED if self._player.is_paused else PlaybackState.PLAYING
-        return PlayerStatus(
-            state=state,
-            station=self._current,
-            program=self._player.program(),
-            elapsed_seconds=self._elapsed_seconds(),
-            paused_seconds=self._paused_seconds(),
-            volume=self._player.volume,
-            muted=self._player.is_muted,
-            device=self._player.device(),
-        )
+        return self._player_status(state)
 
     def play(self, slug: str) -> PlayerStatus:
         """Start playing the given station, closing the previous play entry."""
         station = self._catalog.get(slug)
         self._finish_play()
+        self._reconnect.reset()
+        self._reset_play()
         self._player.start(station.url)
 
         self._current = station
-        self._started_at = time.monotonic()
+        self._started_at = self._clock()
         self._paused_at = None
         self._paused_total = 0.0
 
@@ -151,6 +163,8 @@ class RadioService:
     def stop(self) -> PlayerStatus:
         """Stop playback and close the current play entry."""
         self._finish_play()
+        self._reconnect.reset()
+        self._sleep_timer.cancel()
         self._player.stop()
         self._reset_play()
         return self.status()
@@ -167,7 +181,7 @@ class RadioService:
             return self.status()
 
         self._player.set_paused(True)
-        self._paused_at = time.monotonic()
+        self._paused_at = self._clock()
         self._history.append(build_event(HistoryEventType.PAUSED, self._current))
         return self.status()
 
@@ -215,6 +229,33 @@ class RadioService:
         self._animations = enabled
         self._state.update(enable_animations=enabled)
         return self._animations
+
+    @property
+    def auto_reconnect(self) -> bool:
+        """Return whether unexpected stream exits should be retried."""
+        return self._auto_reconnect
+
+    def set_auto_reconnect(self, enabled: bool) -> bool:
+        """Persist automatic reconnect and cancel pending retries when disabled."""
+        self._auto_reconnect = enabled
+        self._state.update(auto_reconnect=enabled)
+        if not enabled and self._reconnect.active:
+            if self._player.is_running:
+                self._reconnect.reset()
+            else:
+                self._finish_play()
+                self._reconnect.reset()
+                self._reset_play()
+        return self._auto_reconnect
+
+    def set_sleep_timer(self, minutes: int | None) -> PlayerStatus:
+        """Set or cancel the session-only sleep timer."""
+        self._sleep_timer.set_minutes(minutes)
+        return self.status()
+
+    def sleep_remaining_seconds(self) -> float | None:
+        """Return the active sleep timer countdown."""
+        return self._sleep_timer.remaining_seconds()
 
     def volume(self) -> int:
         """Return the current output volume in percent."""
@@ -266,10 +307,15 @@ class RadioService:
             merged = merged.model_copy(
                 update={"enable_animations": current.enable_animations}
             )
+        if merged.auto_reconnect is None:
+            merged = merged.model_copy(
+                update={"auto_reconnect": self._auto_reconnect}
+            )
 
         self._favorites = favorites
         self._autoplay = bool(merged.autoplay_last_station)
         self._animations = bool(merged.enable_animations)
+        self._auto_reconnect = bool(merged.auto_reconnect)
         self._player.set_volume(merged.volume)
         self._player.set_muted(merged.muted)
 
@@ -315,7 +361,12 @@ class RadioService:
 
     def session_listened_seconds(self) -> float:
         """Return the time listened during this run, the current play included."""
-        running = max(self._elapsed_seconds() - self._paused_seconds(), 0.0)
+        running = max(
+            self._elapsed_seconds()
+            - self._paused_seconds()
+            - self._interrupted_seconds(),
+            0.0,
+        )
         return self._session_listened + running
 
     def history(self, limit: int | None = None) -> tuple[HistoryEvent, ...]:
@@ -332,11 +383,11 @@ class RadioService:
 
     def _elapsed_seconds(self) -> float:
         """Return the wall clock time since the current play entry started."""
-        return 0.0 if self._started_at is None else time.monotonic() - self._started_at
+        return 0.0 if self._started_at is None else self._clock() - self._started_at
 
     def _paused_seconds(self) -> float:
         """Return the paused time of the current play entry, pause in progress included."""
-        running = 0.0 if self._paused_at is None else time.monotonic() - self._paused_at
+        running = 0.0 if self._paused_at is None else self._clock() - self._paused_at
         return self._paused_total + running
 
     def _close_pause(self) -> float:
@@ -344,10 +395,82 @@ class RadioService:
         if self._paused_at is None:
             return 0.0
 
-        paused_seconds = time.monotonic() - self._paused_at
+        paused_seconds = self._clock() - self._paused_at
         self._paused_total += paused_seconds
         self._paused_at = None
         return paused_seconds
+
+    def _begin_interruption(self) -> None:
+        """Start counting a playback outage once."""
+        if self._interrupted_at is None:
+            self._interrupted_at = self._clock()
+
+    def _close_interruption(self) -> float:
+        """Fold an active outage into the current play total."""
+        if self._interrupted_at is None:
+            return 0.0
+        interrupted = self._clock() - self._interrupted_at
+        self._interrupted_total += interrupted
+        self._interrupted_at = None
+        return interrupted
+
+    def _interrupted_seconds(self) -> float:
+        """Return completed and currently running outage time."""
+        running = (
+            0.0
+            if self._interrupted_at is None
+            else self._clock() - self._interrupted_at
+        )
+        return self._interrupted_total + running
+
+    def _status_for_stopped_player(self) -> PlayerStatus:
+        """Advance reconnect state after observing a dead backend."""
+        if self._current is None or self._started_at is None:
+            self._reconnect.reset()
+            return self._player_status(PlaybackState.STOPPED)
+
+        self._begin_interruption()
+        if not self._auto_reconnect:
+            self._finish_play()
+            self._reset_play()
+            return self._player_status(PlaybackState.STOPPED)
+
+        if self._reconnect.stabilizing:
+            if not self._reconnect.record_failure():
+                self._finish_play()
+                self._reset_play()
+                return self._player_status(PlaybackState.STOPPED)
+        elif not self._reconnect.active:
+            self._reconnect.start()
+
+        if self._reconnect.ready:
+            self._reconnect.record_attempt()
+            try:
+                self._player.start(self._current.url)
+            except PlayerError:
+                if not self._reconnect.record_failure():
+                    self._finish_play()
+                    self._reset_play()
+                    return self._player_status(PlaybackState.STOPPED)
+            else:
+                self._close_interruption()
+
+        return self._player_status(PlaybackState.RECONNECTING)
+
+    def _player_status(self, state: PlaybackState) -> PlayerStatus:
+        """Build one status snapshot from current in-memory state."""
+        return PlayerStatus(
+            state=state,
+            station=self._current,
+            program=self._player.program() if self._player.is_running else None,
+            elapsed_seconds=self._elapsed_seconds(),
+            paused_seconds=self._paused_seconds(),
+            volume=self._player.volume,
+            muted=self._player.is_muted,
+            device=self._player.device(),
+            reconnect_attempt=self._reconnect.attempt,
+            sleep_remaining_seconds=self._sleep_timer.remaining_seconds(),
+        )
 
     def _finish_play(self) -> None:
         """Log the end of the current play entry, if there is one."""
@@ -355,14 +478,19 @@ class RadioService:
             return
 
         self._close_pause()
-        duration = time.monotonic() - self._started_at
-        self._session_listened += max(duration - self._paused_total, 0.0)
+        self._close_interruption()
+        duration = self._clock() - self._started_at
+        self._session_listened += max(
+            duration - self._paused_total - self._interrupted_total,
+            0.0,
+        )
         self._history.append(
             build_event(
                 HistoryEventType.PLAY_ENDED,
                 self._current,
                 duration_seconds=duration,
                 paused_seconds=self._paused_total,
+                interrupted_seconds=self._interrupted_total,
             )
         )
 
@@ -372,6 +500,8 @@ class RadioService:
         self._started_at = None
         self._paused_at = None
         self._paused_total = 0.0
+        self._interrupted_at = None
+        self._interrupted_total = 0.0
 
 
 def build_radio_service(settings: Settings | None = None) -> RadioService:
@@ -384,4 +514,5 @@ def build_radio_service(settings: Settings | None = None) -> RadioService:
         state=StateStore(settings.state_file),
         autoplay_last_station=settings.autoplay_last_station,
         enable_animations=settings.enable_animations,
+        auto_reconnect=settings.auto_reconnect,
     )

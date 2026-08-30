@@ -22,9 +22,17 @@ class HistoryEvent(BaseModel):
     paused_seconds: float | None = Field(
         default=None, description="Time spent paused inside the event"
     )
+    interrupted_seconds: float = Field(
+        default=0.0,
+        ge=0,
+        description="Time playback was unavailable while reconnecting",
+    )
 
     @property
     def listened_seconds(self) -> float:
-        """Return the time actually heard, excluding pauses."""
+        """Return the time actually heard, excluding pauses and interruptions."""
         duration = self.duration_seconds or 0.0
-        return max(duration - (self.paused_seconds or 0.0), 0.0)
+        return max(
+            duration - (self.paused_seconds or 0.0) - self.interrupted_seconds,
+            0.0,
+        )

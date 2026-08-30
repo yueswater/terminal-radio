@@ -102,6 +102,7 @@ def build_event(
     station: Station | None = None,
     duration_seconds: float | None = None,
     paused_seconds: float | None = None,
+    interrupted_seconds: float = 0.0,
 ) -> HistoryEvent:
     """Build a timestamped event for the given station."""
     return HistoryEvent(
@@ -112,4 +113,5 @@ def build_event(
         station_dial=station.dial if station else None,
         duration_seconds=duration_seconds,
         paused_seconds=paused_seconds,
+        interrupted_seconds=interrupted_seconds,
     )
