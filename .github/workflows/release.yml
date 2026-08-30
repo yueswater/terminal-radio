@@ -3,6 +3,10 @@ name: Release
 # Release Please reads the commit messages on main, works out the next version
 # from them, and keeps a pull request open carrying the version bump and the
 # changelog. Merging that pull request is what releases.
+#
+# The publish steps are written out here rather than called from publish.yml.
+# PyPI's trusted publishing refuses a reusable workflow, because the identity it
+# checks names the workflow that was called rather than the one that ran.
 on:
   push:
     branches: [main]
@@ -27,13 +31,33 @@ jobs:
   publish:
     needs: prepare
     if: needs.prepare.outputs.released == 'true'
-    # The tag was created with the default token, which does not start a
-    # workflow, so the publish is called here instead of waiting for it.
-    uses: ./.github/workflows/publish.yml
+    runs-on: ubuntu-latest
+    environment: pypi
     permissions:
-      # A job block replaces the permissions wholesale, so checkout needs its
-      # own grant alongside the one trusted publishing needs.
       contents: read
+      # Trusted publishing exchanges this token with PyPI, so no API token is
+      # stored in the repository.
       id-token: write
-    with:
-      target: pypi
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install mpv
+        run: sudo apt-get update && sudo apt-get install -y mpv
+
+      - name: Run the test suite
+        run: uv run --frozen python -m pytest tests -q
+
+      - name: Build the wheel and the source distribution
+        run: uv build
+
+      - name: Check the metadata renders on the index
+        run: uvx twine check dist/*
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

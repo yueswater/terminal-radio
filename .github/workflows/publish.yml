@@ -1,11 +1,8 @@
 name: Publish
 
-# Three ways in, one path out.
-#
-# A tag published by hand, a rehearsal run against TestPyPI, and a call from the
-# release workflow all run these same jobs. The call matters: a tag created with
-# the default token does not start a workflow, so the release cannot rely on its
-# own tag to reach this one.
+# Publishing by hand: a tag pushed from a terminal, or a rehearsal against
+# TestPyPI. The automated path lives in release.yml, which carries its own copy
+# of these steps because PyPI's trusted publishing refuses a reusable workflow.
 on:
   push:
     tags: ["v*"]
@@ -16,12 +13,6 @@ on:
         type: choice
         options: [testpypi, pypi]
         default: testpypi
-  workflow_call:
-    inputs:
-      target:
-        description: Which index to publish to
-        type: string
-        default: pypi
 
 jobs:
   test:
