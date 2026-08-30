@@ -1,10 +1,18 @@
 name: Publish
 
-# Publishing is driven by a tag, so what reaches PyPI is always something that
-# exists in the history under a name you can point at.
+# A tag publishes to PyPI, so what is released always has a name in the history
+# pointing at it. TestPyPI is reachable by hand, for rehearsing a release
+# without spending a version number on the real index.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which index to publish to
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
 
 jobs:
   test:
@@ -32,7 +40,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
+      # Only a tagged run claims a version number, so only it has to agree.
       - name: Check that the tag matches the project version
+        if: github.event_name == 'push'
         run: |
           version=$(uv version --short)
           tag="${GITHUB_REF_NAME#v}"
@@ -44,7 +54,7 @@ jobs:
       - name: Build the wheel and the source distribution
         run: uv build
 
-      - name: Check the metadata renders on PyPI
+      - name: Check the metadata renders on the index
         run: uvx twine check dist/*
 
       - uses: actions/upload-artifact@v4
@@ -55,8 +65,10 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment: pypi
-    # Trusted publishing exchanges this token with PyPI, so no API token is
+    # The environment name has to match the one registered with the trusted
+    # publisher on the index being published to.
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'pypi' }}
+    # Trusted publishing exchanges this token with the index, so no API token is
     # stored in the repository.
     permissions:
       id-token: write
@@ -66,4 +78,14 @@ jobs:
           name: distributions
           path: dist/
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to TestPyPI
+        if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          # A rehearsal repeats version numbers, and that is not a failure.
+          skip-existing: true
+
+      - name: Publish to PyPI
+        if: github.event_name == 'push' || inputs.target == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
