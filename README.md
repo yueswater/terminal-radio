@@ -9,7 +9,7 @@
        alt="A terminal screen beside the RADIO word mark, in gradient ASCII art">
 </p>
 
-![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-3fb950?style=flat-square) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)
+![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-3fb950?style=flat-square) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)
 
 A terminal player for Taiwanese radio stations. The Textual interface and FastAPI control API share the same service layer.
 
@@ -31,6 +31,9 @@ sudo pacman -S mpv
 
 For other systems, see the [mpv installation guide](https://mpv.io/installation/). After installation, run `mpv --version` to confirm that the command is available in your terminal.
 
+> **macOS and Linux only.** The player reaches mpv over a unix socket. Windows
+> is not supported and is not tested. It runs under WSL.
+
 ## Install
 
 ```sh
@@ -49,18 +52,6 @@ pipx install radiotui-tw
 ```
 
 To remove it, run `uv tool uninstall radiotui-tw`.
-
-### Windows
-
-The install script is for shells that macOS and Linux ship. On Windows, install
-the two pieces directly:
-
-```powershell
-winget install mpv
-uv tool install radiotui-tw
-```
-
-The player reaches mpv over a named pipe there, and over a socket elsewhere.
 
 ### Working on the project
 

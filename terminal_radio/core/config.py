@@ -10,7 +10,6 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from terminal_radio.core import ipc
 from terminal_radio.constants.config import (
     DEFAULT_DATA_DIR,
     DEFAULT_LOCALE,
@@ -62,12 +61,12 @@ class Settings(BaseModel):
 
     @property
     def ipc_socket(self) -> Path:
-        """Return the address mpv should listen on for this process.
+        """Return the unix socket used to talk to the mpv process.
 
-        The shape differs by platform, so the choice is left to the transport.
-        The name carries the process id, so two players never collide.
+        It lives in the system temporary directory because a unix socket path is
+        limited to about a hundred characters on most platforms.
         """
-        return ipc.endpoint(f"radio-mpv-{os.getpid()}", Path(tempfile.gettempdir()))
+        return Path(tempfile.gettempdir()) / f"radio-mpv-{os.getpid()}.sock"
 
 
 def _env_flag(name: str) -> bool | None:

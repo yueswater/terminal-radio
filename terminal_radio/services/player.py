@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import subprocess
 import threading
 import time
@@ -21,7 +22,6 @@ from terminal_radio.constants.player import (
     STREAM_ID_LENGTH,
 )
 from terminal_radio.core.exceptions import PlayerError
-from terminal_radio.core import ipc
 from terminal_radio.services.audio import detect_output_device
 
 
@@ -111,7 +111,7 @@ class MpvPlayer:
         self._output_driver: str | None = None
         self._device: str | None = None
 
-        self._connection: ipc.IpcChannel | None = None
+        self._connection: socket.socket | None = None
         self._reader: threading.Thread | None = None
         self._shutdown = threading.Event()
         self._lock = threading.Lock()
@@ -237,11 +237,12 @@ class MpvPlayer:
         return self._device or self._output_driver
 
     def _prepare_socket(self) -> None:
-        """Make sure the address mpv will listen on is free to use."""
+        """Make sure the IPC socket path is free and its directory exists."""
         try:
-            ipc.clear(self._ipc_socket)
+            self._ipc_socket.parent.mkdir(parents=True, exist_ok=True)
+            self._ipc_socket.unlink(missing_ok=True)
         except OSError as error:
-            raise PlayerError(f"Cannot use IPC address: {self._ipc_socket}") from error
+            raise PlayerError(f"Cannot use IPC socket: {self._ipc_socket}") from error
 
     def _send(self, command: list[object]) -> None:
         """Write one IPC command without waiting for its answer."""
@@ -250,7 +251,7 @@ class MpvPlayer:
             if connection is None:
                 return
             try:
-                connection.send((json.dumps({"command": command}) + "\n").encode())
+                connection.sendall((json.dumps({"command": command}) + "\n").encode())
             except OSError:
                 return
 
@@ -259,7 +260,10 @@ class MpvPlayer:
         with self._lock:
             connection, self._connection = self._connection, None
         if connection is not None:
-            connection.close()
+            try:
+                connection.close()
+            except OSError:
+                pass
 
     def _read_events(self) -> None:
         """Own the IPC socket and keep the observed properties up to date."""
@@ -281,7 +285,7 @@ class MpvPlayer:
                 self._device = detect_output_device()
 
             try:
-                chunk = connection.receive(4096)
+                chunk = connection.recv(4096)
             except TimeoutError:
                 continue
             except OSError:
@@ -297,13 +301,19 @@ class MpvPlayer:
 
         self._close_connection()
 
-    def _wait_for_socket(self) -> ipc.IpcChannel | None:
-        """Open the IPC channel, waiting for mpv to start listening."""
-        return ipc.connect(
-            self._ipc_socket,
-            PLAYER_SOCKET_TIMEOUT_SECONDS,
-            time.monotonic() + PLAYER_SOCKET_WAIT_SECONDS,
-        )
+    def _wait_for_socket(self) -> socket.socket | None:
+        """Connect to the IPC socket, waiting for mpv to create it."""
+        deadline = time.monotonic() + PLAYER_SOCKET_WAIT_SECONDS
+        while not self._shutdown.is_set() and time.monotonic() < deadline:
+            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            connection.settimeout(PLAYER_SOCKET_TIMEOUT_SECONDS)
+            try:
+                connection.connect(str(self._ipc_socket))
+                return connection
+            except OSError:
+                connection.close()
+                time.sleep(0.05)
+        return None
 
     def _handle_message(self, line: bytes) -> None:
         """Apply one IPC message to the local copy of the observed properties."""
