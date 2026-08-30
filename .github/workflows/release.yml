@@ -1,0 +1,39 @@
+name: Release
+
+# Release Please reads the commit messages on main, works out the next version
+# from them, and keeps a pull request open carrying the version bump and the
+# changelog. Merging that pull request is what releases.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.released == 'true'
+    # The tag was created with the default token, which does not start a
+    # workflow, so the publish is called here instead of waiting for it.
+    uses: ./.github/workflows/publish.yml
+    permissions:
+      # A job block replaces the permissions wholesale, so checkout needs its
+      # own grant alongside the one trusted publishing needs.
+      contents: read
+      id-token: write
+    with:
+      target: pypi

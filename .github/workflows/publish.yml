@@ -1,8 +1,11 @@
 name: Publish
 
-# A tag publishes to PyPI, so what is released always has a name in the history
-# pointing at it. TestPyPI is reachable by hand, for rehearsing a release
-# without spending a version number on the real index.
+# Three ways in, one path out.
+#
+# A tag published by hand, a rehearsal run against TestPyPI, and a call from the
+# release workflow all run these same jobs. The call matters: a tag created with
+# the default token does not start a workflow, so the release cannot rely on its
+# own tag to reach this one.
 on:
   push:
     tags: ["v*"]
@@ -13,6 +16,12 @@ on:
         type: choice
         options: [testpypi, pypi]
         default: testpypi
+  workflow_call:
+    inputs:
+      target:
+        description: Which index to publish to
+        type: string
+        default: pypi
 
 jobs:
   test:
@@ -40,9 +49,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      # Only a tagged run claims a version number, so only it has to agree.
+      # Only a tag claims a version number, so only a tag has to agree with one.
       - name: Check that the tag matches the project version
-        if: github.event_name == 'push'
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           version=$(uv version --short)
           tag="${GITHUB_REF_NAME#v}"
@@ -67,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     # The environment name has to match the one registered with the trusted
     # publisher on the index being published to.
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'pypi' }}
+    environment: ${{ inputs.target || 'pypi' }}
     # Trusted publishing exchanges this token with the index, so no API token is
     # stored in the repository.
     permissions:
@@ -79,7 +88,7 @@ jobs:
           path: dist/
 
       - name: Publish to TestPyPI
-        if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+        if: inputs.target == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
@@ -87,5 +96,5 @@ jobs:
           skip-existing: true
 
       - name: Publish to PyPI
-        if: github.event_name == 'push' || inputs.target == 'pypi'
+        if: inputs.target != 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
