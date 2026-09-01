@@ -8,6 +8,7 @@ messages:
   tab.home: Home
   tab.favorites: Favorites
   tab.history: History
+  tab.now_playing: Tracks
   tab.statistics: Statistics
   tab.themes: Themes
   tab.settings: Settings
@@ -36,6 +37,7 @@ messages:
   player.muted: MUT
   player.volume: VOL
   player.sleep: "Sleep {duration}"
+  player.fallback: "BACKUP {index}"
 
   column.dial: Dial
   column.station: Station
@@ -45,6 +47,8 @@ messages:
   column.listened: Listened
   column.paused: Paused
   column.last_played: Last played
+  column.time: Time
+  column.title: Title
   column.setting: Setting
   column.value: Value
   column.note: Notes
@@ -57,6 +61,7 @@ messages:
   settings.custom_stations: Custom stations
   settings.shortcuts: Keyboard shortcuts
   settings.theme: Theme
+  settings.scroll_titles: Scroll long titles
   settings.animations: Animations
   settings.language: Language
   settings.volume: Volume
@@ -98,8 +103,8 @@ messages:
   notify.health_complete: "Online {online} · Slow {slow} · Offline {offline}"
 
   search.title: Search stations
-  search.placeholder: Dial, station, description, or band
-  search.hint: Enter plays · Escape closes
+  search.placeholder: "Dial, station, or a filter such as genre:news region:taipei"
+  search.hint: "genre: region: lang: network: band: · Enter plays · Escape closes"
 
   help.title: Keyboard shortcuts
   help.close: Escape closes
@@ -122,11 +127,16 @@ messages:
   notify.custom_added: "Added {name}"
   notify.custom_updated: "Updated {name}"
   notify.custom_deleted: "Deleted {name}"
+  notify.scroll_titles: Title scrolling {state}
   notify.animations: "Animations {state}"
   notify.favorite_added: "Added {name} to favorites"
   notify.favorite_removed: "Removed {name} from favorites"
 
   history.clear: Clear listening history
+  now_playing.clear: Clear tracks
+  now_playing.export: Export CSV
+  now_playing.export_title: Export the track log to
+  now_playing.empty: No station has announced anything yet
   history.export: Export CSV
   history.export_title: Export listening history to
   notify.history_exported: "History saved to {path}"
@@ -154,9 +164,13 @@ messages:
   stats.daypart.evening: Evening
   stats.daypart.night: Night
   confirm.clear_history: Clear all history?
+  confirm.clear_now_playing: Clear every recorded track?
   confirm.accept: Confirm
   confirm.cancel: Cancel
   notify.history_cleared: History cleared
+  notify.now_playing_cleared: Tracks cleared
+  notify.now_playing_exported: Tracks exported to {path}
+  notify.now_playing_clear_failed: Cannot clear the tracks
   notify.history_clear_failed: Clear failed
   settings.reset: Restore defaults
   confirm.reset_settings: Restore defaults?
@@ -203,3 +217,45 @@ messages:
   import.hint: enter loads, escape cancels
   import.empty: No exported file found in the usual folders
   notify.imported: "Loaded {name}"
+
+  # Station classification. The values themselves are language neutral codes;
+  # only these names are translated.
+  genre.news: News
+  genre.talk: Talk
+  genre.traffic: Traffic
+  genre.music: Music
+  genre.pop: Pop
+  genre.classical: Classical
+  genre.culture: Culture
+  genre.education: Education
+  genre.religion: Religion
+  genre.community: Community
+  genre.government: Government
+  genre.military: Military
+
+  region.national: Nationwide
+  region.taipei: Taipei
+  region.new-taipei: New Taipei
+  region.keelung: Keelung
+  region.taoyuan: Taoyuan
+  region.hsinchu: Hsinchu
+  region.miaoli: Miaoli
+  region.taichung: Taichung
+  region.changhua: Changhua
+  region.nantou: Nantou
+  region.yunlin: Yunlin
+  region.chiayi: Chiayi
+  region.tainan: Tainan
+  region.kaohsiung: Kaohsiung
+  region.pingtung: Pingtung
+  region.yilan: Yilan
+  region.hualien: Hualien
+  region.taitung: Taitung
+  region.penghu: Penghu
+  region.kinmen: Kinmen
+  region.lienchiang: Lienchiang
+
+  language.zh-Hant: Mandarin
+  language.nan: Taiwanese
+  language.hak: Hakka
+  language.en: English

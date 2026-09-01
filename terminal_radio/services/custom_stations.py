@@ -81,22 +81,44 @@ class CustomStationStore:
         """Encode the limited TOML subset used by the station catalog."""
         lines = ["# User-defined radio stations."]
         for item in stations:
-            lines.extend(
-                (
-                    "",
-                    "[[stations]]",
-                    f"slug = {json.dumps(item.slug, ensure_ascii=False)}",
-                    f"name = {json.dumps(item.name, ensure_ascii=False)}",
-                    f"band = {json.dumps(item.band.value, ensure_ascii=False)}",
-                )
-            )
+            lines.extend(("", "[[stations]]"))
+            lines.append(_string("slug", item.slug))
+            lines.append(_string("name", item.name))
+            if item.short_name is not None:
+                lines.append(_string("short_name", item.short_name))
+            lines.append(_string("band", item.band.value))
             if item.frequency is not None:
-                lines.append(
-                    f"frequency = {json.dumps(item.frequency, ensure_ascii=False)}"
-                )
+                lines.append(_string("frequency", item.frequency))
             if item.description is not None:
-                lines.append(
-                    f"description = {json.dumps(item.description, ensure_ascii=False)}"
-                )
-            lines.append(f"url = {json.dumps(item.url, ensure_ascii=False)}")
+                lines.append(_string("description", item.description))
+            if item.network is not None:
+                lines.append(_string("network", item.network))
+            if item.regions:
+                lines.append(_array("regions", [str(v) for v in item.regions]))
+            if item.genres:
+                lines.append(_array("genres", [str(v) for v in item.genres]))
+            if item.languages:
+                lines.append(_array("languages", item.languages))
+            lines.append(_string("url", item.url))
+            if item.fallback_urls:
+                lines.append(_array("fallback_urls", item.fallback_urls))
         return "\n".join(lines) + "\n"
+
+
+def _quote(value: str) -> str:
+    """Return a TOML basic string.
+
+    JSON and TOML escape a basic string the same way, so the encoder in the
+    standard library saves carrying one of our own.
+    """
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _string(key: str, value: str) -> str:
+    """Return one ``key = "value"`` line."""
+    return f"{key} = {_quote(value)}"
+
+
+def _array(key: str, values: Sequence[str]) -> str:
+    """Return one ``key = ["a", "b"]`` line."""
+    return f"{key} = [{', '.join(_quote(value) for value in values)}]"

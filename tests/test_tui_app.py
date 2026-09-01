@@ -24,6 +24,7 @@ from terminal_radio.services import (
     ThemeRepository,
     build_radio_service,
 )
+from terminal_radio.tui.screens import StationSearchScreen
 from terminal_radio.tui.app import (
     FAVORITES_TAB,
     HISTORY_TAB,
@@ -87,6 +88,13 @@ class MemoryPlayer:
 
     def device(self) -> str | None:
         return None
+
+    def fade_out(self, seconds: float) -> None:
+        self.faded = seconds
+
+    def drain_program_changes(self) -> tuple[str, ...]:
+        announced, self.announced = tuple(getattr(self, "announced", ())), []
+        return announced
 
 
 class RadioAppTests(unittest.IsolatedAsyncioTestCase):
@@ -570,8 +578,22 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                         self.assertGreater(table.max_scroll_y, 0)
                         self.assertEqual(pane.max_scroll_y, 0)
 
-                        table.focus()
-                        await pilot.press("pagedown")
+                        # Reassert the fixture and the focus on every attempt:
+                        # a queued handler may refresh the table away, and the
+                        # key only lands once the focus change has been seen.
+                        for _ in range(20):
+                            if table.max_scroll_y == 0:
+                                if isinstance(table, StationTable):
+                                    table.set_stations(rows)
+                                else:
+                                    table.show(rows)
+                                await pilot.pause()
+                            table.focus()
+                            await pilot.pause()
+                            await pilot.press("pagedown")
+                            if table.scroll_y > 0:
+                                break
+                            await pilot.pause()
 
                         self.assertGreater(table.scroll_y, 0)
                         self.assertEqual(pane.scroll_y, 0)
@@ -909,3 +931,278 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 table = app.query_one(SettingsTable)
                 self.assertEqual(table.get_cell("volume", "value"), "95%")
                 self.assertIn("95%", str(app.query_one("#np-volume", Static).render()))
+
+
+class StationSearchTests(unittest.IsolatedAsyncioTestCase):
+    """The search modal, and the tab bar icon that opens it."""
+
+    def _app(self, directory: str) -> tuple[RadioApp, Settings]:
+        settings = Settings(
+            data_dir=Path(directory),
+            autoplay_last_station=False,
+            status_refresh_seconds=60,
+        )
+        service = RadioService(
+            catalog=StationCatalog.from_file(settings.stations_file),
+            player=MemoryPlayer(),
+            history=HistoryLog(settings.history_file),
+            state=StateStore(settings.state_file),
+            autoplay_last_station=False,
+        )
+        app = RadioApp(
+            service,
+            ThemeRepository.from_file(settings.themes_file),
+            LocaleRepository.from_directory(settings.locales_dir, settings.locale),
+            settings,
+        )
+        return app, settings
+
+    async def test_the_icon_floats_over_the_tab_bar_without_shortening_it(self) -> None:
+        """The overlay layer must not take a row away from the tabbed content."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+
+                icon = app.query_one("#search-button")
+                tabs = app.query_one("#tabs", TabbedContent)
+
+                self.assertEqual(icon.region.y, 0)
+                self.assertEqual(tabs.region.y, 0)
+                self.assertEqual(icon.region.height, 1)
+                # The icon sits at the right edge, clear of the leftmost tabs.
+                self.assertGreater(icon.region.x, tabs.region.width // 2)
+
+    async def test_clicking_the_icon_opens_the_search_modal(self) -> None:
+        """The icon is the pointer equivalent of the slash key."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+
+                await pilot.click("#search-button")
+                await pilot.pause()
+
+                self.assertIsInstance(app.screen, StationSearchScreen)
+
+                await pilot.press("escape")
+                await pilot.pause()
+                self.assertNotIsInstance(app.screen, StationSearchScreen)
+
+    async def test_the_icon_gives_way_on_a_narrow_terminal(self) -> None:
+        """Below the compact breakpoint every column of the tab bar is needed."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(70, 24)) as pilot:
+                await pilot.pause()
+                self.assertFalse(app.query_one("#search-button").display)
+
+    async def test_typing_a_query_does_not_fire_the_global_shortcuts(self) -> None:
+        """Letters bound to stop, favorite and quit have to reach the field."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+                await pilot.press("slash")
+                await pilot.pause()
+
+                await pilot.press(*"news")
+                await pilot.pause()
+
+                field = app.screen.query_one("#station-search-input", Input)
+                self.assertEqual(field.value, "news")
+                self.assertIsInstance(app.screen, StationSearchScreen)
+
+    async def test_a_frequency_query_lists_the_dial_before_prose_matches(self) -> None:
+        """Typing 98 has to find FM 98.1, not a description that mentions it."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+                await pilot.press("slash")
+                await pilot.pause()
+
+                await pilot.press(*"98")
+                await pilot.pause()
+
+                results = app.screen.query_one("#station-search-results", StationTable)
+                first = results.selected_station
+                self.assertIsNotNone(first)
+                assert first is not None
+                self.assertTrue(first.dial.startswith("FM 98"))
+
+
+class ProgramTabTests(unittest.IsolatedAsyncioTestCase):
+    """The tab showing what the stations have been announcing."""
+
+    def _app(self, directory: str) -> tuple[RadioApp, RadioService]:
+        from terminal_radio.services import NowPlayingLog
+
+        settings = Settings(
+            data_dir=Path(directory),
+            autoplay_last_station=False,
+            status_refresh_seconds=60,
+        )
+        service = RadioService(
+            catalog=StationCatalog.from_file(settings.stations_file),
+            player=MemoryPlayer(),
+            history=HistoryLog(settings.history_file),
+            state=StateStore(settings.state_file),
+            autoplay_last_station=False,
+            now_playing=NowPlayingLog(settings.now_playing_file),
+        )
+        app = RadioApp(
+            service,
+            ThemeRepository.from_file(settings.themes_file),
+            LocaleRepository.from_directory(settings.locales_dir, settings.locale),
+            settings,
+        )
+        return app, service
+
+    async def test_announced_titles_appear_newest_first(self) -> None:
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            settings = Settings(data_dir=Path(directory))
+            from terminal_radio.services import NowPlayingLog
+
+            log = NowPlayingLog(settings.now_playing_file)
+            log.record(service.get_station("icrt"), "Coldplay - Yellow")
+            log.record(service.get_station("icrt"), "Dua Lipa - Houdini")
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+
+                self.assertEqual(table.row_count, 2)
+                self.assertEqual(
+                    table.get_row_at(0)[2], "Dua Lipa - Houdini"
+                )
+                self.assertEqual(table.get_row_at(1)[2], "Coldplay - Yellow")
+
+    async def test_an_empty_log_leaves_an_empty_table(self) -> None:
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+
+                self.assertEqual(
+                    app.query_one("#now-playing-log", NowPlayingTable).row_count, 0
+                )
+
+    async def test_clearing_asks_first_and_then_empties_the_table(self) -> None:
+        from terminal_radio.services import NowPlayingLog
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            settings = Settings(data_dir=Path(directory))
+            NowPlayingLog(settings.now_playing_file).record(
+                service.get_station("icrt"), "Coldplay - Yellow"
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+                self.assertEqual(table.row_count, 1)
+
+                await pilot.click("#clear-now-playing")
+                await pilot.pause()
+                # Cancel takes the keyboard, so confirming has to be deliberate.
+                await pilot.click("#confirm-accept")
+                await pilot.pause()
+
+                self.assertEqual(table.row_count, 0)
+
+    async def test_the_headings_follow_the_interface_language(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+
+                app.apply_locale("en")
+                await pilot.pause()
+
+                tab = app.query_one(TabbedContent).get_tab("tab-now-playing")
+                self.assertEqual(str(tab.label), "Tracks")
+                self.assertEqual(
+                    str(app.query_one("#clear-now-playing", Button).label),
+                    "Clear tracks",
+                )
+
+
+class ScrollTitlesSettingTests(unittest.IsolatedAsyncioTestCase):
+    """The sliding title is a preference, remembered between runs."""
+
+    def _app(self, directory: str, **overrides: object) -> tuple[RadioApp, RadioService]:
+        settings = Settings(
+            data_dir=Path(directory),
+            autoplay_last_station=False,
+            status_refresh_seconds=60,
+            **overrides,
+        )
+        service = RadioService(
+            catalog=StationCatalog.from_file(settings.stations_file),
+            player=MemoryPlayer(),
+            history=HistoryLog(settings.history_file),
+            state=StateStore(settings.state_file),
+            autoplay_last_station=False,
+            scroll_titles=settings.scroll_titles,
+        )
+        app = RadioApp(
+            service,
+            ThemeRepository.from_file(settings.themes_file),
+            LocaleRepository.from_directory(settings.locales_dir, settings.locale),
+            settings,
+        )
+        return app, service
+
+    async def test_the_settings_page_toggles_it(self) -> None:
+        from terminal_radio.tui.widgets import MarqueeLabel
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = SETTINGS_TAB
+                await pilot.pause()
+                table = app.query_one(SettingsTable)
+                keys = [key for key, *_ in table._rows]
+                self.assertIn("scroll_titles", keys)
+
+                self.assertTrue(service.scroll_titles)
+                app.toggle_setting("scroll_titles")
+                await pilot.pause()
+
+                self.assertFalse(service.scroll_titles)
+                label = app.query_one("#np-program", MarqueeLabel)
+                self.assertFalse(label._scrolling)
+
+    async def test_the_choice_outlives_the_run(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+                app.toggle_setting("scroll_titles")
+
+            # A second run, with the environment default still saying on.
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                await pilot.pause()
+
+                self.assertFalse(service.scroll_titles)
+
+    async def test_the_environment_can_turn_it_off_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            _, service = self._app(directory, scroll_titles=False)
+
+            self.assertFalse(service.scroll_titles)

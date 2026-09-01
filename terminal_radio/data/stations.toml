@@ -1,5 +1,24 @@
 # Station catalog. Every stream URL lives here, never in the code.
 # band must be FM or AM. It drives the tabs of the terminal UI.
+#
+# The rest describes the station rather than the signal, and drives the filters
+# of the search bar, of `radio stations` and of the HTTP API:
+#
+#   network    the family a station belongs to, which groups its frequencies
+#   regions    where it is mainly heard, not where its company is registered
+#   genres     what it mostly broadcasts, as many as apply
+#   languages  BCP 47 tags: zh-Hant Mandarin, nan Taiwanese, hak Hakka, en
+#
+# regions and genres are closed sets. Their values are the ones listed in
+# terminal_radio/enums/station.py, and a value outside them is a load error
+# rather than a station nobody can find.
+#
+# fallback_urls is optional. url is always the address tried first; the backups
+# are tried in turn as the reconnect delays elapse, and whichever one works is
+# kept until the station is asked for again:
+#
+#   url = "https://primary.example/live"
+#   fallback_urls = ["https://backup.example/live"]
 
 [[stations]]
 slug = "pbs-national"
@@ -8,6 +27,10 @@ short_name = "警廣全國網"
 band = "FM"
 frequency = "104.9"
 description = "路況與治安即時資訊"
+network = "警察廣播電臺"
+regions = ["national"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/PBS/playlist.m3u8"
 
 [[stations]]
@@ -17,6 +40,10 @@ short_name = "i like radio"
 band = "FM"
 frequency = "103.3"
 description = "流行音樂與談話"
+network = "中國廣播公司"
+regions = ["national"]
+genres = ["pop", "music", "talk"]
+languages = ["zh-Hant"]
 url = "https://n03.rcs.revma.com/aw9uqyxy2tzuv"
 
 [[stations]]
@@ -26,6 +53,10 @@ short_name = "i radio"
 band = "FM"
 frequency = "96.3"
 description = "全日音樂"
+network = "中國廣播公司"
+regions = ["national"]
+genres = ["music", "pop"]
+languages = ["zh-Hant"]
 url = "https://n03.rcs.revma.com/ndk05tyy2tzuv"
 
 [[stations]]
@@ -35,6 +66,10 @@ short_name = "Hit FM"
 band = "FM"
 frequency = "107.7"
 description = "Hit FM 聯播網 台北"
+network = "Hit FM 聯播網"
+regions = ["taipei"]
+genres = ["pop", "music", "talk"]
+languages = ["zh-Hant"]
 url = "http://202.39.43.67:1935/live/RA000036/chunklist.m3u8"
 
 [[stations]]
@@ -44,6 +79,10 @@ short_name = "飛碟"
 band = "FM"
 frequency = "92.1"
 description = "飛碟聯播網"
+network = "飛碟聯播網"
+regions = ["taipei"]
+genres = ["talk", "news", "music"]
+languages = ["zh-Hant"]
 url = "https://n10.rcs.revma.com/em90w4aeewzuv"
 
 [[stations]]
@@ -53,6 +92,9 @@ short_name = "News98"
 band = "FM"
 frequency = "98.1"
 description = "新聞與時事"
+regions = ["taipei"]
+genres = ["news", "talk"]
+languages = ["zh-Hant"]
 url = "https://n17a-eu.rcs.revma.com/pntx1639ntzuv"
 
 [[stations]]
@@ -62,6 +104,9 @@ short_name = "ICRT"
 band = "FM"
 frequency = "100.7"
 description = "English radio"
+regions = ["national"]
+genres = ["pop", "music", "news"]
+languages = ["en"]
 url = "https://n27a-eu.rcs.revma.com/nkdfurztxp3vv"
 
 [[stations]]
@@ -71,6 +116,9 @@ short_name = "IC之音"
 band = "FM"
 frequency = "97.5"
 description = "新竹科學園區"
+regions = ["hsinchu"]
+genres = ["culture", "music", "talk"]
+languages = ["zh-Hant"]
 url = "http://n01a-eu.rcs.revma.com/7mnq8rt7k5zuv"
 
 [[stations]]
@@ -80,6 +128,10 @@ short_name = "臺北電臺 FM"
 band = "FM"
 frequency = "93.1"
 description = "臺北市政府"
+network = "臺北廣播電臺"
+regions = ["taipei"]
+genres = ["government", "news", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.ginnet.cloud/live0130lo-yfyo/_definst_/fm/playlist.m3u8"
 
 [[stations]]
@@ -89,6 +141,10 @@ short_name = "港都983"
 band = "FM"
 frequency = "98.3"
 description = "高雄"
+network = "好事聯播網"
+regions = ["kaohsiung"]
+genres = ["pop", "music"]
+languages = ["zh-Hant"]
 url = "http://202.39.43.67:1935/live/RA000012/chunklist.m3u8"
 
 [[stations]]
@@ -98,6 +154,9 @@ short_name = "M Radio"
 band = "FM"
 frequency = "106.1"
 description = "台中"
+regions = ["taichung"]
+genres = ["music", "pop"]
+languages = ["zh-Hant"]
 url = "https://n03.rcs.revma.com/044q61ha7a0uv"
 
 [[stations]]
@@ -107,6 +166,9 @@ short_name = "AsiaFM"
 band = "FM"
 frequency = "92.7"
 description = "AsiaFM"
+regions = ["taichung", "changhua"]
+genres = ["music", "pop"]
+languages = ["zh-Hant"]
 url = "https://n13.rcs.revma.com/xpgtqc74hv8uv"
 
 [[stations]]
@@ -116,6 +178,9 @@ short_name = "Uni Radio"
 band = "FM"
 frequency = "96.7"
 description = "桃竹苗"
+regions = ["taoyuan", "hsinchu", "miaoli"]
+genres = ["music", "talk", "community"]
+languages = ["zh-Hant"]
 url = "https://n06.rcs.revma.com/srn5f9kmwxhvv"
 
 [[stations]]
@@ -125,6 +190,9 @@ short_name = "寶島新聲"
 band = "FM"
 frequency = "98.5"
 description = "台語新聞談話"
+regions = ["taipei"]
+genres = ["news", "talk"]
+languages = ["nan", "zh-Hant"]
 url = "http://125.227.87.206:8000/FM98.5"
 
 [[stations]]
@@ -134,6 +202,10 @@ short_name = "世新 FM"
 band = "FM"
 frequency = "88.1"
 description = "世新大學"
+network = "世新廣播電台"
+regions = ["taipei"]
+genres = ["education", "community", "music"]
+languages = ["zh-Hant"]
 url = "https://stream.ginnet.cloud/live0115lo-89xv/_definst_/fm881/playlist.m3u8"
 
 [[stations]]
@@ -143,6 +215,9 @@ short_name = "佳音"
 band = "FM"
 frequency = "90.9"
 description = "音樂與生活"
+regions = ["taipei"]
+genres = ["religion", "music", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.ginnet.cloud/live0119lo-p4rb/_definst_/fm909/playlist.m3u8"
 
 [[stations]]
@@ -152,6 +227,9 @@ short_name = "講客"
 band = "FM"
 frequency = "105.9"
 description = "客語頻道"
+regions = ["national"]
+genres = ["culture", "talk", "music"]
+languages = ["hak"]
 url = "https://n08.rcs.revma.com/akqrbx94gbkvv"
 
 [[stations]]
@@ -161,6 +239,9 @@ short_name = "新客家"
 band = "FM"
 frequency = "93.5"
 description = "客語頻道"
+regions = ["hsinchu", "miaoli"]
+genres = ["culture", "talk", "music"]
+languages = ["hak"]
 url = "http://live.fm935newhakka.com.tw:5006/live"
 
 [[stations]]
@@ -170,6 +251,10 @@ short_name = "漢聲 FM"
 band = "FM"
 frequency = "106.5"
 description = "國防部"
+network = "漢聲廣播電臺"
+regions = ["national"]
+genres = ["military", "news", "music"]
+languages = ["zh-Hant"]
 url = "http://202.39.43.67:1935/live/RA000076/chunklist.m3u8"
 
 [[stations]]
@@ -179,6 +264,10 @@ short_name = "正聲 FM"
 band = "FM"
 frequency = "104.1"
 description = "正聲廣播公司"
+network = "正聲廣播公司"
+regions = ["taipei"]
+genres = ["talk", "music"]
+languages = ["zh-Hant"]
 url = "https://flv.ccdntech.com/live/_definst_/mp4:vod117_Live/live1/playlist.m3u8"
 
 [[stations]]
@@ -188,6 +277,9 @@ short_name = "TUN Radio"
 band = "FM"
 frequency = "100.7"
 description = "TUN Radio"
+regions = ["taichung"]
+genres = ["music", "pop"]
+languages = ["zh-Hant"]
 url = "http://211.20.119.101:8081/"
 
 [[stations]]
@@ -197,6 +289,9 @@ short_name = "城市廣播"
 band = "FM"
 frequency = "92.9"
 description = "台中"
+regions = ["taichung"]
+genres = ["music", "talk"]
+languages = ["zh-Hant"]
 url = "http://fm929.cityfm.tw:8080/929.mp3"
 
 [[stations]]
@@ -206,6 +301,9 @@ short_name = "Classical 97.7"
 band = "FM"
 frequency = "97.7"
 description = "古典音樂"
+regions = ["taichung"]
+genres = ["classical", "music"]
+languages = ["zh-Hant"]
 url = "http://onair.family977.com.tw:8000/live.mp3"
 
 [[stations]]
@@ -214,6 +312,10 @@ name = "警察廣播電臺 臺北分臺"
 short_name = "警廣臺北"
 band = "FM"
 frequency = "94.3"
+network = "警察廣播電臺"
+regions = ["taipei"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/TPS/playlist.m3u8"
 
 [[stations]]
@@ -222,6 +324,10 @@ name = "警察廣播電臺 臺中分臺"
 short_name = "警廣臺中"
 band = "FM"
 frequency = "94.5"
+network = "警察廣播電臺"
+regions = ["taichung"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/TCS/playlist.m3u8"
 
 [[stations]]
@@ -230,6 +336,10 @@ name = "警察廣播電臺 高雄分臺"
 short_name = "警廣高雄"
 band = "FM"
 frequency = "93.1"
+network = "警察廣播電臺"
+regions = ["kaohsiung"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/KSS/playlist.m3u8"
 
 [[stations]]
@@ -238,6 +348,10 @@ name = "警察廣播電臺 宜蘭分臺"
 short_name = "警廣宜蘭"
 band = "FM"
 frequency = "101.3"
+network = "警察廣播電臺"
+regions = ["yilan"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/ELS/playlist.m3u8"
 
 [[stations]]
@@ -246,6 +360,10 @@ name = "警察廣播電臺 花蓮分臺"
 short_name = "警廣花蓮"
 band = "FM"
 frequency = "94.3"
+network = "警察廣播電臺"
+regions = ["hualien"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/HLS/playlist.m3u8"
 
 [[stations]]
@@ -254,6 +372,10 @@ name = "警察廣播電臺 臺東分臺"
 short_name = "警廣臺東"
 band = "FM"
 frequency = "94.3"
+network = "警察廣播電臺"
+regions = ["taitung"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/TTS/playlist.m3u8"
 
 [[stations]]
@@ -263,6 +385,10 @@ short_name = "中廣新聞網"
 band = "AM"
 frequency = "648"
 description = "新聞頻道"
+network = "中國廣播公司"
+regions = ["national"]
+genres = ["news", "talk"]
+languages = ["zh-Hant"]
 url = "https://n03.rcs.revma.com/78fm9wyy2tzuv"
 
 [[stations]]
@@ -272,6 +398,10 @@ short_name = "臺北電臺 AM"
 band = "AM"
 frequency = "1134"
 description = "臺北市政府"
+network = "臺北廣播電臺"
+regions = ["taipei"]
+genres = ["government", "news", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.ginnet.cloud/live0130lo-yfyo/_definst_/am/playlist.m3u8"
 
 [[stations]]
@@ -281,6 +411,10 @@ short_name = "漢聲 AM"
 band = "AM"
 frequency = "684"
 description = "國防部"
+network = "漢聲廣播電臺"
+regions = ["national"]
+genres = ["military", "news", "music"]
+languages = ["zh-Hant"]
 url = "http://202.39.43.67:1935/live/RA000074/chunklist.m3u8"
 
 [[stations]]
@@ -290,6 +424,10 @@ short_name = "世新 AM"
 band = "AM"
 frequency = "729"
 description = "世新大學"
+network = "世新廣播電台"
+regions = ["taipei"]
+genres = ["education", "community"]
+languages = ["zh-Hant"]
 url = "https://stream.ginnet.cloud/live0115lo-89xv/_definst_/am729/playlist.m3u8"
 
 [[stations]]
@@ -298,6 +436,10 @@ name = "民本電台"
 short_name = "民本二台"
 band = "AM"
 frequency = "855"
+network = "民本電台"
+regions = ["taipei"]
+genres = ["talk", "music", "community"]
+languages = ["zh-Hant", "nan"]
 url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am855/chunklist.m3u8"
 
 [[stations]]
@@ -306,6 +448,10 @@ name = "民本電台"
 short_name = "民本一台"
 band = "AM"
 frequency = "1296"
+network = "民本電台"
+regions = ["taipei"]
+genres = ["talk", "music", "community"]
+languages = ["zh-Hant", "nan"]
 url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am1296/chunklist.m3u8"
 
 [[stations]]
@@ -314,6 +460,10 @@ name = "正聲廣播 台北調幅"
 short_name = "正聲 AM"
 band = "AM"
 frequency = "819"
+network = "正聲廣播公司"
+regions = ["taipei"]
+genres = ["talk", "music"]
+languages = ["zh-Hant"]
 url = "http://test.taiwan-radio.tw:8000/TP.AM819"
 
 [[stations]]
@@ -322,6 +472,10 @@ name = "台灣廣播 台北一台"
 short_name = "台廣台北一台"
 band = "AM"
 frequency = "1323"
+network = "台灣廣播"
+regions = ["taipei"]
+genres = ["talk", "music", "community"]
+languages = ["zh-Hant", "nan"]
 url = "http://test.taiwan-radio.tw:8000/TP.AM1323"
 
 [[stations]]
@@ -330,6 +484,10 @@ name = "台灣廣播 台中台"
 short_name = "台廣台中台"
 band = "AM"
 frequency = "774"
+network = "台灣廣播"
+regions = ["taichung"]
+genres = ["talk", "music", "community"]
+languages = ["zh-Hant", "nan"]
 url = "http://test.taiwan-radio.tw:8000/TC.AM774"
 
 [[stations]]
@@ -339,6 +497,9 @@ short_name = "勝利之聲"
 band = "AM"
 frequency = "756"
 description = "屏東"
+regions = ["pingtung"]
+genres = ["community", "music", "talk"]
+languages = ["zh-Hant", "nan"]
 url = "http://test.taiwan-radio.tw:8000/PH.AM756"
 
 [[stations]]
@@ -347,6 +508,9 @@ name = "彰化國聲廣播電台"
 short_name = "國聲"
 band = "AM"
 frequency = "1179"
+regions = ["changhua"]
+genres = ["community", "music", "talk"]
+languages = ["zh-Hant", "nan"]
 url = "http://test.taiwan-radio.tw:8000/CH.AM1179"
 
 [[stations]]
@@ -355,6 +519,9 @@ name = "台南建國廣播"
 short_name = "建國廣播"
 band = "AM"
 frequency = "801"
+regions = ["tainan"]
+genres = ["community", "music", "talk"]
+languages = ["zh-Hant", "nan"]
 url = "http://test.taiwan-radio.tw:8000/TN.AM801"
 
 [[stations]]
@@ -364,6 +531,10 @@ short_name = "高雄電臺 AM"
 band = "AM"
 frequency = "1089"
 description = "高雄市政府"
+network = "高雄廣播電臺"
+regions = ["kaohsiung"]
+genres = ["government", "news", "talk"]
+languages = ["zh-Hant"]
 url = "https://n05.rcs.revma.com/4r99rt1g1bkvv"
 
 [[stations]]
@@ -372,6 +543,10 @@ name = "警察廣播電臺 臺南分臺"
 short_name = "警廣臺南"
 band = "AM"
 frequency = "1314"
+network = "警察廣播電臺"
+regions = ["tainan"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/TNS/playlist.m3u8"
 
 [[stations]]
@@ -380,4 +555,8 @@ name = "警察廣播電臺 新竹分臺"
 short_name = "警廣新竹"
 band = "AM"
 frequency = "1512"
+network = "警察廣播電臺"
+regions = ["hsinchu"]
+genres = ["news", "traffic", "talk"]
+languages = ["zh-Hant"]
 url = "https://stream.pbs.gov.tw/live/SCS/playlist.m3u8"

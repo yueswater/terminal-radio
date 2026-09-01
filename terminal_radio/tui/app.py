@@ -19,6 +19,8 @@ from terminal_radio.constants.tui import (
     FAVORITES_TAB,
     HISTORY_TAB,
     HOME_TAB,
+    NOW_PLAYING_TAB,
+    NOW_PLAYING_TABLE_LIMIT,
     SETTINGS_TAB,
     STATISTICS_TAB,
     TAB_LABELS,
@@ -36,9 +38,11 @@ from terminal_radio.services import (
     build_radio_service,
     find_config_files,
     history_csv_filename,
+    now_playing_csv_filename,
     read_export,
     write_export,
     write_history_csv,
+    write_now_playing_csv,
     StationHealthSnapshot,
 )
 from terminal_radio.tui.formatting import format_duration, format_path
@@ -62,6 +66,8 @@ from terminal_radio.tui.widgets import (
     ListeningStatsPanel,
     LogoBlock,
     NowPlayingBar,
+    NowPlayingTable,
+    SearchButton,
     SettingsTable,
     StationTable,
     ThemeGallery,
@@ -73,8 +79,9 @@ class RadioApp(App[None]):
     CSS_PATH = "radio.tcss"
     TITLE = "Terminal Radio"
 
-    # The UI is a picker, not an editor, so no widget ever accepts typed text.
-    # Disabling the palette removes the only text input Textual adds by default.
+    # Text is typed only on the modal screens that ask for it. The palette is a
+    # second, unlocalized command surface on top of the search this app owns,
+    # so it stays off.
     ENABLE_COMMAND_PALETTE = False
 
     BINDINGS = [
@@ -114,6 +121,7 @@ class RadioApp(App[None]):
 
     def compose(self) -> ComposeResult:
         """Build the home page, one tab per band and the auxiliary pages."""
+        yield SearchButton(self.t, id="search-button")
         with TabbedContent(id="tabs"):
             with TabPane(self.t("tab.home"), id=HOME_TAB):
                 yield HomePanel(self.t, id="home")
@@ -165,6 +173,26 @@ class RadioApp(App[None]):
                         compact=True,
                         id="clear-history",
                     )
+            with TabPane(
+                self.t("tab.now_playing"),
+                id=NOW_PLAYING_TAB,
+                classes="centered-table-page",
+            ):
+                yield Static("", classes="table-action-spacer")
+                with Container(classes="centered-table-shell"):
+                    yield NowPlayingTable(self.t, id="now-playing-log")
+                with Horizontal(id="now-playing-actions"):
+                    yield Button(
+                        self.t("now_playing.export"),
+                        compact=True,
+                        id="export-now-playing",
+                    )
+                    yield Button(
+                        self.t("now_playing.clear"),
+                        variant="error",
+                        compact=True,
+                        id="clear-now-playing",
+                    )
             with TabPane(self.t("tab.statistics"), id=STATISTICS_TAB):
                 yield ListeningStatsPanel(self.t, id="statistics")
             with TabPane(self.t("tab.themes"), id=THEMES_TAB):
@@ -198,6 +226,8 @@ class RadioApp(App[None]):
         self.refresh_stars()
         self._call_service(self._service.start_session)
         self.refresh_history()
+        self.refresh_now_playing()
+        self.apply_scroll_titles(self._service.scroll_titles)
         self.refresh_statistics()
 
         # Autoplay may have started a stream, but the run always opens on home.
@@ -267,6 +297,13 @@ class RadioApp(App[None]):
             )
         elif event.button.id == "export-history":
             self.action_export_history()
+        elif event.button.id == "export-now-playing":
+            self.action_export_now_playing()
+        elif event.button.id == "clear-now-playing":
+            self.push_screen(
+                ConfirmationScreen(self.t, self.t("confirm.clear_now_playing")),
+                self.finish_clear_now_playing,
+            )
         elif event.button.id == "reset-settings":
             self.push_screen(
                 ConfirmationScreen(self.t, self.t("confirm.reset_settings")),
@@ -279,10 +316,15 @@ class RadioApp(App[None]):
         """Pause or resume when the bottom-left playback state is clicked."""
         self.action_pause()
 
+    def on_search_button_pressed(self, _event: SearchButton.Pressed) -> None:
+        """Open the search modal from the tab bar icon."""
+        self.action_search()
+
     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
         """Reload the tab that just came to the front and give it the focus."""
         reloaders = {
             HISTORY_TAB: self.refresh_history,
+            NOW_PLAYING_TAB: self.refresh_now_playing,
             STATISTICS_TAB: self.refresh_statistics,
             FAVORITES_TAB: self.refresh_favorites,
             THEMES_TAB: self.refresh_themes,
@@ -323,6 +365,12 @@ class RadioApp(App[None]):
     def refresh_history(self) -> None:
         """Reload the listening totals of the history tab."""
         self.query_one(HistoryTable).show(self._service.summaries())
+
+    def refresh_now_playing(self) -> None:
+        """Reload the programme table from the announcement log."""
+        tables = self.query(NowPlayingTable)
+        if tables:
+            tables.first().show(self._service.now_playing(NOW_PLAYING_TABLE_LIMIT))
 
     def refresh_statistics(self) -> None:
         """Rebuild every listening chart from the complete history."""
@@ -409,6 +457,12 @@ class RadioApp(App[None]):
                     self.t("note.animations"),
                 ),
                 (
+                    "scroll_titles",
+                    self.t("settings.scroll_titles"),
+                    state(self._service.scroll_titles),
+                    self.t("note.toggle"),
+                ),
+                (
                     "volume",
                     self.t("settings.volume"),
                     f"{self._service.volume()}%",
@@ -480,6 +534,7 @@ class RadioApp(App[None]):
         for widget_type in (
             StationTable,
             HistoryTable,
+            NowPlayingTable,
             ListeningStatsPanel,
             ThemeGallery,
             SettingsTable,
@@ -490,6 +545,12 @@ class RadioApp(App[None]):
             if widgets:
                 widgets.first().focus()
                 return
+
+    def apply_scroll_titles(self, enabled: bool) -> None:
+        """Turn the sliding title on or off."""
+        bars = self.query(NowPlayingBar)
+        if bars:
+            bars.first().set_scrolling_titles(enabled)
 
     def apply_animations(self, enabled: bool) -> None:
         """Turn Textual transitions on or off."""
@@ -513,8 +574,9 @@ class RadioApp(App[None]):
             tabs.get_tab(pane_id).label = self.t(key)
 
         for widget in self.query(
-            "HomePanel, AboutPanel, StationTable, HistoryTable, ListeningStatsPanel, "
-            "SettingsTable, ThemeGallery, NowPlayingBar, KeyHintBar"
+            "HomePanel, AboutPanel, StationTable, HistoryTable, NowPlayingTable, "
+            "ListeningStatsPanel, "
+            "SettingsTable, ThemeGallery, NowPlayingBar, KeyHintBar, SearchButton"
         ):
             retranslate = getattr(widget, "retranslate", None)
             if retranslate is not None:
@@ -523,6 +585,12 @@ class RadioApp(App[None]):
         self.query_one("#clear-history", Button).label = self.t("history.clear")
         self.query_one("#export-history", Button).label = self.t("history.export")
         self.query_one("#reset-settings", Button).label = self.t("settings.reset")
+        self.query_one("#clear-now-playing", Button).label = self.t(
+            "now_playing.clear"
+        )
+        self.query_one("#export-now-playing", Button).label = self.t(
+            "now_playing.export"
+        )
 
         self.refresh_themes()
         self.refresh_settings()
@@ -544,6 +612,20 @@ class RadioApp(App[None]):
         self.refresh_history()
         self.notify(self.t("notify.history_cleared"), timeout=2)
 
+    def finish_clear_now_playing(self, confirmed: bool) -> None:
+        """Clear the announcement log after explicit confirmation."""
+        if not confirmed:
+            return
+
+        if not self._service.clear_now_playing():
+            self.notify(
+                self.t("notify.now_playing_clear_failed"), severity="error", timeout=4
+            )
+            return
+
+        self.refresh_now_playing()
+        self.notify(self.t("notify.now_playing_cleared"), timeout=2)
+
     def finish_reset_settings(self, confirmed: bool) -> None:
         """Restore app defaults after explicit confirmation."""
         if not confirmed:
@@ -552,12 +634,14 @@ class RadioApp(App[None]):
         restored = self._service.reset_settings(
             autoplay=self._settings.autoplay_last_station,
             animations=self._settings.enable_animations,
+            scroll_titles=self._settings.scroll_titles,
             auto_reconnect=self._settings.auto_reconnect,
             auto_health_check=self._settings.auto_health_check,
             locale=self._locales.default_code,
             theme_name=self._themes.default_name,
         )
         self.apply_animations(self._service.animations)
+        self.apply_scroll_titles(self._service.scroll_titles)
         self.theme = resolve_theme_name(self._themes, restored.theme_name)
         self.apply_locale(restored.locale or self._locales.default_code, announce=False)
         self.sync_status()
@@ -580,6 +664,19 @@ class RadioApp(App[None]):
             self.notify(
                 self.t(
                     "notify.animations",
+                    state=self.t(f"value.{'on' if enabled else 'off'}"),
+                ),
+                timeout=2,
+            )
+        elif key == "scroll_titles":
+            enabled = self._service.set_scroll_titles(
+                not self._service.scroll_titles
+            )
+            self.apply_scroll_titles(enabled)
+            self.refresh_settings()
+            self.notify(
+                self.t(
+                    "notify.scroll_titles",
                     state=self.t(f"value.{'on' if enabled else 'off'}"),
                 ),
                 timeout=2,
@@ -884,6 +981,9 @@ class RadioApp(App[None]):
         if isinstance(self.screen, GoodbyeScreen):
             return
 
+        # The farewell is on screen for a moment either way, so the sound is
+        # taken down across it rather than cut off mid-word.
+        self._service.fade_out(self._settings.goodbye_seconds)
         self.push_screen(
             GoodbyeScreen(
                 self.t,
@@ -937,6 +1037,41 @@ class RadioApp(App[None]):
             return
         self.notify(self.t("notify.history_exported", path=format_path(target)), timeout=4)
 
+    def action_export_now_playing(self) -> None:
+        """Ask for a destination for a localized track log CSV."""
+        filename = now_playing_csv_filename()
+        self.push_screen(
+            ExportScreen(
+                self.t,
+                self.export_destinations(),
+                filename=filename,
+                title_key="now_playing.export_title",
+            ),
+            lambda directory: self.finish_now_playing_export(directory, filename),
+        )
+
+    def finish_now_playing_export(
+        self, directory: Path | None, filename: str
+    ) -> None:
+        """Write the whole track log, not only the rows the table holds."""
+        if directory is None:
+            return
+        headers = (
+            self.t("column.time"),
+            self.t("column.station"),
+            self.t("column.title"),
+        )
+        try:
+            target = write_now_playing_csv(
+                directory, self._service.now_playing(), headers, filename=filename
+            )
+        except RadioError as error:
+            self.notify(str(error), title=self.TITLE, severity="error")
+            return
+        self.notify(
+            self.t("notify.now_playing_exported", path=format_path(target)), timeout=4
+        )
+
     def action_import_settings(self) -> None:
         """Ask which exported file to load, then adopt what it holds."""
         directories = tuple(path for _, path in self.export_destinations())
@@ -980,6 +1115,7 @@ class RadioApp(App[None]):
             return
 
         self.apply_animations(self._service.animations)
+        self.apply_scroll_titles(self._service.scroll_titles)
         self.theme = resolve_theme_name(self._themes, adopted.theme_name)
         self.apply_locale(self._locales.translator(adopted.locale).code)
 

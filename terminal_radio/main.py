@@ -11,23 +11,33 @@ from fastapi.responses import JSONResponse
 from terminal_radio.core.config import Settings, get_settings
 from terminal_radio.core.exceptions import PlayerError, RadioError, StationNotFoundError
 from terminal_radio.routers import api_router
-from terminal_radio.services import ThemeRepository, build_radio_service
+from terminal_radio.services import RadioService, ThemeRepository, build_radio_service
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
-    """Build a configured FastAPI application."""
+def create_app(
+    settings: Settings | None = None, service: RadioService | None = None
+) -> FastAPI:
+    """Build a configured FastAPI application.
+
+    A service may be supplied by a caller that already owns one, such as the
+    terminal UI serving the control socket alongside its own interface. Only
+    the application that built the service shuts it down: borrowing one and
+    stopping it would silence a radio somebody else is still holding.
+    """
     settings = settings or get_settings()
+    borrowed = service is not None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Own the radio service for the lifetime of the application."""
         app.state.settings = settings
-        app.state.radio_service = build_radio_service(settings)
+        app.state.radio_service = service or build_radio_service(settings)
         app.state.themes = ThemeRepository.from_file(settings.themes_file)
         try:
             yield
         finally:
-            app.state.radio_service.stop()
+            if not borrowed:
+                app.state.radio_service.stop()
 
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
     app.include_router(api_router)

@@ -8,6 +8,7 @@ messages:
   tab.home: 首頁
   tab.favorites: 我的最愛
   tab.history: 收聽紀錄
+  tab.now_playing: 曲目紀錄
   tab.statistics: 聆聽統計
   tab.themes: 佈景主題
   tab.settings: 設定
@@ -36,6 +37,7 @@ messages:
   player.muted: 靜音
   player.volume: 音量
   player.sleep: "睡眠 {duration}"
+  player.fallback: "備援 {index}"
 
   column.dial: 頻率
   column.station: 電台
@@ -45,6 +47,8 @@ messages:
   column.listened: 收聽時間
   column.paused: 暫停時間
   column.last_played: 最後收聽
+  column.time: 時間
+  column.title: 曲目
   column.setting: 項目
   column.value: 目前值
   column.note: 說明
@@ -57,6 +61,7 @@ messages:
   settings.custom_stations: 自訂電台
   settings.shortcuts: 鍵盤快捷鍵
   settings.theme: 主題
+  settings.scroll_titles: 曲目跑馬燈
   settings.animations: 動畫
   settings.language: 語言
   settings.volume: 音量
@@ -98,8 +103,8 @@ messages:
   notify.health_complete: "正常 {online} · 緩慢 {slow} · 離線 {offline}"
 
   search.title: 搜尋電台
-  search.placeholder: 頻率、電台、說明或波段
-  search.hint: Enter 播放 · Escape 關閉
+  search.placeholder: "頻率、電台，或 genre:news region:taipei"
+  search.hint: "genre: region: lang: network: band: · Enter 播放 · Escape 關閉"
 
   help.title: 鍵盤快捷鍵
   help.close: Escape 關閉
@@ -122,11 +127,16 @@ messages:
   notify.custom_added: "已新增 {name}"
   notify.custom_updated: "已更新 {name}"
   notify.custom_deleted: "已刪除 {name}"
+  notify.scroll_titles: 曲目跑馬燈{state}
   notify.animations: "動畫效果：{state}"
   notify.favorite_added: "已將 {name} 加入我的最愛"
   notify.favorite_removed: "已將 {name} 移出我的最愛"
 
   history.clear: 清除收聽紀錄
+  now_playing.clear: 清除曲目紀錄
+  now_playing.export: 匯出 CSV
+  now_playing.export_title: 匯出曲目紀錄到
+  now_playing.empty: 還沒有電台報過曲目
   history.export: 匯出 CSV
   history.export_title: 將收聽紀錄匯出到
   notify.history_exported: "紀錄已匯出到 {path}"
@@ -154,9 +164,13 @@ messages:
   stats.daypart.evening: 晚間
   stats.daypart.night: 深夜
   confirm.clear_history: 清除所有紀錄？
+  confirm.clear_now_playing: 確定要清除全部曲目紀錄嗎？
   confirm.accept: 確認
   confirm.cancel: 取消
   notify.history_cleared: 紀錄已清除
+  notify.now_playing_cleared: 曲目紀錄已清除
+  notify.now_playing_exported: 曲目紀錄已匯出到 {path}
+  notify.now_playing_clear_failed: 無法清除曲目紀錄
   notify.history_clear_failed: 清除失敗
   settings.reset: 恢復預設
   confirm.reset_settings: 恢復預設？
@@ -203,3 +217,44 @@ messages:
   import.hint: enter 載入，escape 取消
   import.empty: 常用資料夾裡找不到匯出檔
   notify.imported: "已載入 {name}"
+
+  # 電台分類。值本身是語言中立的代碼，只有這裡的名稱要翻譯。
+  genre.news: 新聞
+  genre.talk: 談話
+  genre.traffic: 路況
+  genre.music: 音樂
+  genre.pop: 流行
+  genre.classical: 古典
+  genre.culture: 文化
+  genre.education: 教育
+  genre.religion: 宗教
+  genre.community: 地方
+  genre.government: 公部門
+  genre.military: 軍事
+
+  region.national: 全國
+  region.taipei: 臺北
+  region.new-taipei: 新北
+  region.keelung: 基隆
+  region.taoyuan: 桃園
+  region.hsinchu: 新竹
+  region.miaoli: 苗栗
+  region.taichung: 臺中
+  region.changhua: 彰化
+  region.nantou: 南投
+  region.yunlin: 雲林
+  region.chiayi: 嘉義
+  region.tainan: 臺南
+  region.kaohsiung: 高雄
+  region.pingtung: 屏東
+  region.yilan: 宜蘭
+  region.hualien: 花蓮
+  region.taitung: 臺東
+  region.penghu: 澎湖
+  region.kinmen: 金門
+  region.lienchiang: 連江
+
+  language.zh-Hant: 華語
+  language.nan: 臺語
+  language.hak: 客語
+  language.en: 英語

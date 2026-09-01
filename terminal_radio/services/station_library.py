@@ -11,6 +11,7 @@ from terminal_radio.enums import Band
 from terminal_radio.models import Station
 from terminal_radio.services.catalog import StationCatalog
 from terminal_radio.services.custom_stations import CustomStationStore
+from terminal_radio.services.station_search import search_stations
 
 
 class StationLibrary:
@@ -35,24 +36,8 @@ class StationLibrary:
         return self._custom
 
     def search(self, query: str) -> tuple[Station, ...]:
-        """Search all display fields while preserving catalog order."""
-        wanted = query.strip().casefold()
-        if not wanted:
-            return self._catalog.all()
-        return tuple(
-            item
-            for item in self._catalog.all()
-            if wanted
-            in " ".join(
-                (
-                    item.dial,
-                    item.name,
-                    item.short_name or "",
-                    item.description or "",
-                    item.band.value,
-                )
-            ).casefold()
-        )
+        """Search all display fields, closest match first."""
+        return search_stations(self._catalog.all(), query)
 
     def add_custom(
         self,

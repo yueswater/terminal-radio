@@ -16,6 +16,7 @@ from terminal_radio.services import HistoryLog, RadioService, StateStore, Statio
 from terminal_radio.services.custom_stations import CustomStationStore
 from terminal_radio.services.station_library import StationLibrary
 from terminal_radio.services.station_health import StationHealthService
+from terminal_radio.services.station_search import search_stations
 
 
 def station(
@@ -241,6 +242,13 @@ class MemoryPlayer:
     def device(self) -> str | None:
         return None
 
+    def fade_out(self, seconds: float) -> None:
+        self.faded = seconds
+
+    def drain_program_changes(self) -> tuple[str, ...]:
+        announced, self.announced = tuple(getattr(self, "announced", ())), []
+        return announced
+
 
 class RadioStationLibraryTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -421,3 +429,52 @@ class StationHealthServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StationSearchRankingTests(unittest.TestCase):
+    """A query is answered dial and name first, prose last."""
+
+    def setUp(self) -> None:
+        self.stations = (
+            station(
+                slug="prose",
+                name="外站",
+                frequency="102.5",
+                description="每天 98 分鐘的音樂",
+            ),
+            station(slug="dial", name="新聲電台", frequency="98.1"),
+            station(slug="named", name="News98", frequency="107.7"),
+        )
+
+    def test_a_frequency_outranks_the_same_digits_in_a_description(self) -> None:
+        found = search_stations(self.stations, "98")
+
+        self.assertEqual(
+            [item.slug for item in found], ["dial", "named", "prose"]
+        )
+
+    def test_an_exact_dial_comes_first(self) -> None:
+        self.assertEqual(search_stations(self.stations, "98.1")[0].slug, "dial")
+
+    def test_a_name_prefix_beats_a_name_substring(self) -> None:
+        stations = (
+            station(slug="inside", name="今日 News 時間", frequency="90.1"),
+            station(slug="prefix", name="News 一點通", frequency="90.3"),
+        )
+
+        found = search_stations(stations, "news")
+
+        self.assertEqual([item.slug for item in found], ["prefix", "inside"])
+
+    def test_stations_sharing_a_rank_keep_their_catalog_order(self) -> None:
+        found = search_stations(self.stations, "fm")
+
+        self.assertEqual(
+            [item.slug for item in found], [item.slug for item in self.stations]
+        )
+
+    def test_an_empty_query_returns_everything(self) -> None:
+        self.assertEqual(search_stations(self.stations, "   "), self.stations)
+
+    def test_a_query_matching_nothing_returns_nothing(self) -> None:
+        self.assertEqual(search_stations(self.stations, "zzz"), ())

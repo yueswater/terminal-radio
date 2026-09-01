@@ -7,6 +7,7 @@ from terminal_radio.enums import PlaybackState, StationHealth
 HOME_TAB = "tab-home"
 FAVORITES_TAB = "tab-favorites"
 HISTORY_TAB = "tab-history"
+NOW_PLAYING_TAB = "tab-now-playing"
 STATISTICS_TAB = "tab-statistics"
 THEMES_TAB = "tab-themes"
 SETTINGS_TAB = "tab-settings"
@@ -16,9 +17,20 @@ VOLUME_STEP = 5
 COMPACT_WIDTH = 90
 WIDE_WIDTH = 150
 DEVICE_NAME_LIMIT = 15
+# Rows the programme table holds. The log behind it runs to thousands of
+# lines, and nobody scrolls that far looking for a song.
+NOW_PLAYING_TABLE_LIMIT = 200
 
 EMPTY = "—"
 STAR = "★"
+SEARCH_GLYPH = "⌕"
+
+# A title too long for its slot slides along the way a car stereo does. It
+# holds still for a beat first, so the start of the title can be read before it
+# starts moving, and the separator marks where the loop comes round again.
+MARQUEE_STEP_SECONDS = 0.3
+MARQUEE_HOLD_TICKS = 6
+MARQUEE_SEPARATOR = "   ·   "
 
 # Station columns the header click can sort, and the marks that show the order.
 SORTABLE_COLUMNS = ("dial", "station")
@@ -47,6 +59,7 @@ TAB_LABELS = {
     HOME_TAB: "tab.home",
     FAVORITES_TAB: "tab.favorites",
     HISTORY_TAB: "tab.history",
+    NOW_PLAYING_TAB: "tab.now_playing",
     STATISTICS_TAB: "tab.statistics",
     THEMES_TAB: "tab.themes",
     SETTINGS_TAB: "tab.settings",
