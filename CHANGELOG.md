@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/yueswater/terminal-radio/compare/v0.3.2...v0.3.3) (2026-09-01)
+
+
+### Fixes
+
+* tell a listener who upgraded about the release after that ([d8e1b63](https://github.com/yueswater/terminal-radio/commit/d8e1b63adc87794880bf1fb4204552eb4b6dacbb))
+
 ## [0.3.2](https://github.com/yueswater/terminal-radio/compare/v0.3.1...v0.3.2) (2026-09-01)
 
 
