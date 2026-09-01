@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from rich.cells import cell_len, set_cell_size
+
 from textual import events
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
+from textual.timer import Timer
 from textual.widgets import DataTable, ListItem, ListView, Static
 
 from terminal_radio.core import about
@@ -17,7 +20,11 @@ from terminal_radio.constants.tui import (
     DEVICE_NAME_LIMIT,
     EMPTY,
     HEALTH_GLYPHS,
+    MARQUEE_HOLD_TICKS,
+    MARQUEE_SEPARATOR,
+    MARQUEE_STEP_SECONDS,
     PAGE_NAVIGATION,
+    SEARCH_GLYPH,
     SORT_GLYPHS,
     SORTABLE_COLUMNS,
     STAR,
@@ -28,7 +35,9 @@ from terminal_radio.constants.tui import (
 from terminal_radio.core.i18n import Translator
 from terminal_radio.enums import PlaybackState, StationHealth
 from terminal_radio.models import PlayerStatus, Station, Theme
+from terminal_radio.models.now_playing import NowPlayingEntry
 from terminal_radio.services import ListeningStatistics, StationSummary
+from terminal_radio.tui.labels import format_tags
 from terminal_radio.tui.formatting import (
     format_clock,
     format_duration,
@@ -214,7 +223,9 @@ class StationTable(NavigableTable):
                 ],
                 station.dial,
                 station.name,
-                station.description or "",
+                # A station that carries no blurb still says what it plays,
+                # which is what fills the column for the relay transmitters.
+                station.description or format_tags(self.t, "genre", station.genres),
                 key=station.slug,
             )
 
@@ -284,6 +295,45 @@ class HistoryTable(NavigableTable):
                 format_clock(summary.paused_seconds),
                 format_timestamp(summary.last_played_at),
                 key=summary.station_slug,
+            )
+
+
+class NowPlayingTable(NavigableTable):
+    """Table listing what the stations said they were playing, newest first."""
+
+    def __init__(self, translator: Translator, **kwargs: object) -> None:
+        super().__init__(translator, **kwargs)
+        self._entries: tuple[NowPlayingEntry, ...] = ()
+
+    def on_mount(self) -> None:
+        """Declare the columns once the widget joins the screen."""
+        self._add_columns()
+
+    def _add_columns(self) -> None:
+        """Add the header row in the current language."""
+        self.add_column(self.t("column.time"), width=14)
+        self.add_column(self.t("column.station"), width=self.scaled(0.24, 14, 34))
+        self.add_column(self.t("column.title"))
+
+    def retranslate(self, translator: Translator) -> None:
+        """Rebuild the header row in the new language, keeping the rows."""
+        super().retranslate(translator)
+        self.clear(columns=True)
+        self._add_columns()
+        self.show(self._entries)
+
+    def show(self, entries: tuple[NowPlayingEntry, ...]) -> None:
+        """Replace the rows with the given announcements."""
+        self.clear()
+        self._entries = entries
+        for index, entry in enumerate(entries):
+            self.add_row(
+                format_timestamp(entry.at),
+                entry.station_name,
+                entry.title,
+                # The same song comes round again, so the row key is the
+                # position rather than anything the entry carries.
+                key=str(index),
             )
 
 
@@ -560,6 +610,118 @@ class AboutPanel(VerticalScroll):
             widget.update(f"{name}  ·  {self.t(key)}")
 
 
+class MarqueeLabel(Static):
+    """A line of text that slides along when it is too long for its slot.
+
+    Nothing moves unless it has to: a title that fits is simply written out.
+    One that does not holds still for a beat, so its opening can be read, and
+    then slides a character at a time and wraps round to the start.
+
+    Widths are measured in terminal cells rather than characters, because a
+    title is as likely to be Chinese as English and those are twice as wide.
+    """
+
+    def __init__(self, prefix: str = "", **kwargs: object) -> None:
+        super().__init__("", **kwargs)
+        self._prefix = prefix
+        self._text = ""
+        self._offset = 0
+        self._held = 0
+        self._scrolling = True
+        self._timer: Timer | None = None
+
+    def set_scrolling(self, enabled: bool) -> None:
+        """Turn the slide on or off, redrawing what is currently shown."""
+        if enabled == self._scrolling:
+            return
+        self._scrolling = enabled
+        self._offset = 0
+        self._held = 0
+        self._draw()
+
+    def set_text(self, text: str) -> None:
+        """Show a line of text, restarting the slide only when it changed.
+
+        The bar is redrawn about once a second, so a title that has not changed
+        has to keep the position it had or it would never get anywhere.
+        """
+        if text == self._text:
+            self._draw()
+            return
+
+        self._text = text
+        self._offset = 0
+        self._held = 0
+        self._draw()
+
+    def on_mount(self) -> None:
+        """Start the clock that moves the text along."""
+        self._timer = self.set_interval(MARQUEE_STEP_SECONDS, self._step)
+
+    def on_resize(self) -> None:
+        """A wider slot may no longer need to slide at all."""
+        self._offset = 0
+        self._held = 0
+        self._draw()
+
+    @property
+    def _room(self) -> int:
+        """Return the cells left for the text once the prefix has its own."""
+        return max(self.content_region.width - cell_len(self._prefix), 0)
+
+    @property
+    def _slides(self) -> bool:
+        """Return whether the text is too long to simply be written out."""
+        room = self._room
+        return (
+            self._scrolling
+            and bool(self._text)
+            and room > 0
+            and cell_len(self._text) > room
+        )
+
+    def _step(self) -> None:
+        """Move the text along one character, holding at the start first."""
+        if not self._slides:
+            return
+        if self._held < MARQUEE_HOLD_TICKS:
+            self._held += 1
+            return
+
+        looped = self._text + MARQUEE_SEPARATOR
+        self._offset = (self._offset + 1) % len(looped)
+        self._draw()
+
+    def _draw(self) -> None:
+        """Write the window of the text that is currently in view."""
+        if not self.is_mounted:
+            return
+        if not self._text:
+            self.update("")
+            return
+
+        room = self._room
+        if room <= 0:
+            self.update("")
+            return
+        if not self._slides:
+            # set_cell_size pads as well as cuts, and a short title must not
+            # pick up a trail of spaces it never had.
+            standing = (
+                self._text
+                if cell_len(self._text) <= room
+                else set_cell_size(self._text, room)
+            )
+            self.update(f"{self._prefix}{standing}")
+            return
+
+        looped = self._text + MARQUEE_SEPARATOR
+        rolled = looped[self._offset :] + looped[: self._offset]
+        # set_cell_size pads or cuts to an exact number of cells, and knows not
+        # to leave half of a double width character at the edge.
+        self.update(f"{self._prefix}{set_cell_size(rolled, room)}")
+
+
 class NowPlayingBar(Vertical):
     """Bottom bar showing the station, the program, the timer and the volume."""
 
@@ -575,11 +737,14 @@ class NowPlayingBar(Vertical):
         """Lay out the two lines of the bar."""
         with Horizontal(id="np-top"):
             yield Static("", id="np-state")
+            yield Static("", id="np-fallback")
             yield Static(EMPTY, id="np-dial")
             yield Static("", id="np-station")
+            # Beside the station, because the title is what the station is
+            # doing right now rather than a detail of the playback below it.
+            yield MarqueeLabel("♪ ", id="np-program")
             yield Static(format_duration(0), id="np-timer")
         with Horizontal(id="np-bottom"):
-            yield Static(EMPTY, id="np-program")
             yield Static("", id="np-sleep")
             yield Static("", id="np-device")
             yield Static("", id="np-volume")
@@ -593,6 +758,12 @@ class NowPlayingBar(Vertical):
         self.t = translator
         if self.is_mounted:
             self.show(self._status)
+
+    def set_scrolling_titles(self, enabled: bool) -> None:
+        """Pass the listener's choice on to the title slot."""
+        labels = self.query(MarqueeLabel)
+        if labels:
+            labels.first().set_scrolling(enabled)
 
     def on_click(self, event: events.Click) -> None:
         """Ask the app to pause or resume when the state label is clicked."""
@@ -613,14 +784,22 @@ class NowPlayingBar(Vertical):
         state = f"{STATE_GLYPHS[status.state]} {self.t(STATE_KEYS[status.state])}"
 
         self.query_one("#np-state", Static).update(state)
+        # Silent while the first address is playing: a badge that is always
+        # there says nothing, and the listener only needs to know when the
+        # station is being carried by something other than its own stream.
+        self.query_one("#np-fallback", Static).update(
+            self.t("player.fallback", index=status.stream_index)
+            if status.using_fallback
+            else ""
+        )
         self.query_one("#np-dial", Static).update(station.dial if station else EMPTY)
         self.query_one("#np-station", Static).update(
             station.name if station else self.t("player.no_station")
         )
         self.query_one("#np-timer", Static).update(timer)
-        self.query_one("#np-program", Static).update(
-            f"♪ {status.program}" if status.program else EMPTY
-        )
+        # Nothing at all when the station announces nothing: a dash beside the
+        # name would read as part of it.
+        self.query_one("#np-program", MarqueeLabel).set_text(status.program or "")
         self.query_one("#np-sleep", Static).update(
             ""
             if status.sleep_remaining_seconds is None
@@ -637,6 +816,36 @@ class NowPlayingBar(Vertical):
         self.set_class(status.state is PlaybackState.PLAYING, "playing")
         self.set_class(status.is_paused, "paused")
         self.set_class(status.state is PlaybackState.RECONNECTING, "reconnecting")
+
+
+class SearchButton(Static):
+    """Search affordance floating over the right end of the tab bar."""
+
+    class Pressed(Message):
+        """The search icon was clicked."""
+
+    def __init__(self, translator: Translator, **kwargs: object) -> None:
+        super().__init__(SEARCH_GLYPH, **kwargs)
+        self.t = translator
+
+    def on_mount(self) -> None:
+        """Name the icon once the widget joins the screen."""
+        self._render_tooltip()
+
+    def retranslate(self, translator: Translator) -> None:
+        """Name the icon in the new language."""
+        self.t = translator
+        if self.is_mounted:
+            self._render_tooltip()
+
+    def on_click(self, event: events.Click) -> None:
+        """Ask the app to open the search modal."""
+        event.stop()
+        self.post_message(self.Pressed())
+
+    def _render_tooltip(self) -> None:
+        """Write the hover label, which names the shortcut as well."""
+        self.tooltip = f"{self.t('search.title')}  (/)"
 
 
 class KeyHintBar(Static):

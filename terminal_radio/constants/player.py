@@ -18,3 +18,27 @@ OBSERVED_PROPERTIES = {
     8: "filename",
 }
 STREAM_ID_LENGTH = 10
+# Endings that mark a title as the name of the thing being fetched rather than
+# the name of what is playing. A station with no metadata reports its playlist
+# or its container, and mpv passes that through as the media title.
+STREAM_FILE_SUFFIXES = (
+    ".m3u8",
+    ".m3u",
+    ".pls",
+    ".mpd",
+    ".asx",
+    ".aac",
+    ".mp3",
+    ".m4a",
+    ".ogg",
+    ".opus",
+    ".flac",
+    ".wav",
+    ".ts",
+)
+# Titles held for a reader that has not asked yet. A station announcing one
+# every few minutes will never come close to this.
+ANNOUNCED_TITLE_LIMIT = 64
+# How often the level is stepped while the sound is being faded out.
+# Fine enough that a fade is heard as a fade rather than as a staircase.
+FADE_STEP_SECONDS = 0.05

@@ -10,16 +10,19 @@ from terminal_radio.core.config import Settings, get_settings
 from terminal_radio.core.exceptions import CatalogError, PlayerError, StationNotFoundError
 from terminal_radio.enums import Band, HistoryEventType, PlaybackState
 from terminal_radio.models import HistoryEvent, PlayerStatus, Station
+from terminal_radio.models.now_playing import NowPlayingEntry
 from terminal_radio.services.catalog import StationCatalog
 from terminal_radio.services.analytics import ListeningStatistics, build_listening_statistics
 from terminal_radio.services.custom_stations import CustomStationStore
 from terminal_radio.services.history import HistoryLog, StationSummary, build_event
 from terminal_radio.services.migration import migrate_legacy_data
+from terminal_radio.services.now_playing import NowPlayingLog
 from terminal_radio.services.player import MpvPlayer, Player
 from terminal_radio.services.reconnect import ReconnectSchedule
 from terminal_radio.services.sleep_timer import SleepTimer
 from terminal_radio.services.state import PersistedState, StateStore
 from terminal_radio.services.station_library import StationLibrary
+from terminal_radio.services.station_search import search_stations
 from terminal_radio.services.station_health import StationHealthService, StationHealthSnapshot
 
 
@@ -34,6 +37,7 @@ class RadioService:
         state: StateStore,
         autoplay_last_station: bool = True,
         enable_animations: bool = False,
+        scroll_titles: bool = True,
         auto_reconnect: bool = True,
         reconnect: ReconnectSchedule | None = None,
         sleep_timer: SleepTimer | None = None,
@@ -41,12 +45,14 @@ class RadioService:
         station_library: StationLibrary | None = None,
         auto_health_check: bool = True,
         station_health: StationHealthService | None = None,
+        now_playing: NowPlayingLog | None = None,
     ) -> None:
         self._catalog = catalog
         self._station_library = station_library
         self._station_health = station_health or StationHealthService()
         self._player = player
         self._history = history
+        self._now_playing = now_playing
         self._state = state
         self._clock = clock
         self._reconnect = reconnect or ReconnectSchedule(clock)
@@ -64,6 +70,9 @@ class RadioService:
             if stored.enable_animations is None
             else stored.enable_animations
         )
+        self._scroll_titles = (
+            scroll_titles if stored.scroll_titles is None else stored.scroll_titles
+        )
         self._auto_reconnect = (
             auto_reconnect if stored.auto_reconnect is None else stored.auto_reconnect
         )
@@ -78,6 +87,9 @@ class RadioService:
 
         self._session_listened = 0.0
         self._current: Station | None = None
+        # Which address of the current station is loaded. A station with no
+        # backup keeps this at zero for its whole life.
+        self._stream_index = 0
         self._started_at: float | None = None
         self._paused_at: float | None = None
         self._paused_total = 0.0
@@ -121,26 +133,10 @@ class RadioService:
         return self.catalog.get(slug)
 
     def search_stations(self, query: str) -> tuple[Station, ...]:
-        """Search every station display field in catalog order."""
+        """Search every station display field, closest match first."""
         if self._station_library is not None:
             return self._station_library.search(query)
-        wanted = query.strip().casefold()
-        if not wanted:
-            return self.catalog.all()
-        return tuple(
-            item
-            for item in self.catalog.all()
-            if wanted
-            in " ".join(
-                (
-                    item.dial,
-                    item.name,
-                    item.short_name or "",
-                    item.description or "",
-                    item.band.value,
-                )
-            ).casefold()
-        )
+        return search_stations(self.catalog.all(), query)
 
     def custom_stations(self) -> tuple[Station, ...]:
         """Return user-defined stations in their saved order."""
@@ -236,6 +232,14 @@ class RadioService:
             return self.play(station.slug)
         return self.status()
 
+    def fade_out(self, seconds: float) -> None:
+        """Ramp the sound down, leaving the remembered volume alone.
+
+        Deliberately not set_volume: that writes the level to disk, and a fade
+        on the way out would otherwise be what the next run starts at.
+        """
+        self._player.fade_out(seconds)
+
     def end_session(self) -> None:
         """Stop playback and log the session end."""
         self.stop()
@@ -243,6 +247,8 @@ class RadioService:
 
     def status(self) -> PlayerStatus:
         """Return the playback status, reconciled with the backend process."""
+        self._record_announced_titles()
+
         if self._sleep_timer.expired():
             return self.stop()
 
@@ -264,7 +270,12 @@ class RadioService:
         self._finish_play()
         self._reconnect.reset()
         self._reset_play()
-        self._player.start(station.url)
+
+        # Asking for a station by name is the one moment the primary is tried
+        # again. A retry that settled on a backup is left alone until then, so
+        # a working stream is never interrupted for the sake of tidiness.
+        self._stream_index = 0
+        self._player.start(station.stream_urls[0])
 
         self._current = station
         self._started_at = self._clock()
@@ -344,6 +355,17 @@ class RadioService:
         self._animations = enabled
         self._state.update(enable_animations=enabled)
         return self._animations
+
+    @property
+    def scroll_titles(self) -> bool:
+        """Return whether a title too long for its slot slides along."""
+        return self._scroll_titles
+
+    def set_scroll_titles(self, enabled: bool) -> bool:
+        """Store whether long titles should slide."""
+        self._scroll_titles = enabled
+        self._state.update(scroll_titles=enabled)
+        return self._scroll_titles
 
     @property
     def auto_reconnect(self) -> bool:
@@ -449,6 +471,8 @@ class RadioService:
             merged = merged.model_copy(
                 update={"enable_animations": current.enable_animations}
             )
+        if merged.scroll_titles is None:
+            merged = merged.model_copy(update={"scroll_titles": self._scroll_titles})
         if merged.auto_reconnect is None:
             merged = merged.model_copy(
                 update={"auto_reconnect": self._auto_reconnect}
@@ -461,6 +485,7 @@ class RadioService:
         self._favorites = favorites
         self._autoplay = bool(merged.autoplay_last_station)
         self._animations = bool(merged.enable_animations)
+        self._scroll_titles = bool(merged.scroll_titles)
         self._auto_reconnect = bool(merged.auto_reconnect)
         self._auto_health_check = bool(merged.auto_health_check)
         self._player.set_volume(merged.volume)
@@ -484,6 +509,7 @@ class RadioService:
         *,
         autoplay: bool,
         animations: bool,
+        scroll_titles: bool,
         auto_reconnect: bool,
         auto_health_check: bool,
         locale: str,
@@ -499,6 +525,7 @@ class RadioService:
                 "muted": defaults.muted,
                 "autoplay_last_station": autoplay,
                 "enable_animations": animations,
+                "scroll_titles": scroll_titles,
                 "auto_reconnect": auto_reconnect,
                 "auto_health_check": auto_health_check,
                 "locale": locale,
@@ -507,6 +534,7 @@ class RadioService:
 
         self._autoplay = autoplay
         self._animations = animations
+        self._scroll_titles = scroll_titles
         self._auto_reconnect = auto_reconnect
         self._auto_health_check = auto_health_check
         self._reconnect.reset()
@@ -625,9 +653,13 @@ class RadioService:
 
         if self._reconnect.ready:
             self._reconnect.record_attempt()
+            self._advance_stream()
             try:
-                self._player.start(self._current.url)
+                self._player.start(self._current.stream_urls[self._stream_index])
             except PlayerError:
+                # status() is polled by the interface, so a backend that will
+                # not start is counted as one more failed attempt rather than
+                # raised into a timer callback.
                 if not self._reconnect.record_failure():
                     self._finish_play()
                     self._reset_play()
@@ -636,6 +668,35 @@ class RadioService:
                 self._close_interruption()
 
         return self._player_status(PlaybackState.RECONNECTING)
+
+    def _record_announced_titles(self) -> None:
+        """Move whatever the backend heard into the now playing log.
+
+        Draining on every status call keeps this off any clock of its own: the
+        interface already asks about once a second, and a headless owner asking
+        on the same rhythm records the same titles without further wiring.
+        """
+        if self._now_playing is None or self._current is None:
+            return
+        for title in self._player.drain_program_changes():
+            self._now_playing.record(self._current, title)
+
+    def now_playing(self, limit: int | None = None) -> tuple[NowPlayingEntry, ...]:
+        """Return the titles the stations announced, newest first."""
+        if self._now_playing is None:
+            return ()
+        return self._now_playing.read(limit)
+
+    def clear_now_playing(self) -> bool:
+        """Remove every announced title."""
+        return self._now_playing is not None and self._now_playing.clear()
+
+    def _advance_stream(self) -> None:
+        """Move to the next address of the current station, wrapping around."""
+        if self._current is None:
+            return
+        count = len(self._current.stream_urls)
+        self._stream_index = (self._stream_index + 1) % count
 
     def _player_status(self, state: PlaybackState) -> PlayerStatus:
         """Build one status snapshot from current in-memory state."""
@@ -650,6 +711,10 @@ class RadioService:
             device=self._player.device(),
             reconnect_attempt=self._reconnect.attempt,
             sleep_remaining_seconds=self._sleep_timer.remaining_seconds(),
+            stream_index=self._stream_index,
+            stream_count=(
+                len(self._current.stream_urls) if self._current is not None else 1
+            ),
         )
 
     def _finish_play(self) -> None:
@@ -677,6 +742,7 @@ class RadioService:
     def _reset_play(self) -> None:
         """Forget everything about the current play entry."""
         self._current = None
+        self._stream_index = 0
         self._started_at = None
         self._paused_at = None
         self._paused_total = 0.0
@@ -700,9 +766,13 @@ def build_radio_service(settings: Settings | None = None) -> RadioService:
         catalog=library.catalog,
         player=MpvPlayer(settings.player_command, settings.ipc_socket),
         history=HistoryLog(settings.history_file, settings.history_limit),
+        now_playing=NowPlayingLog(
+            settings.now_playing_file, settings.now_playing_retention_days
+        ),
         state=StateStore(settings.state_file),
         autoplay_last_station=settings.autoplay_last_station,
         enable_animations=settings.enable_animations,
+        scroll_titles=settings.scroll_titles,
         auto_reconnect=settings.auto_reconnect,
         station_library=library,
         auto_health_check=settings.auto_health_check,

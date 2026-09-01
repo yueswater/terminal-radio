@@ -169,6 +169,13 @@ class ControllablePlayer:
     def device(self) -> str | None:
         return None
 
+    def fade_out(self, seconds: float) -> None:
+        self.faded = seconds
+
+    def drain_program_changes(self) -> tuple[str, ...]:
+        announced, self.announced = tuple(getattr(self, "announced", ())), []
+        return announced
+
 
 class RadioServiceResilienceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -353,3 +360,75 @@ class RadioServiceResilienceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FadeOutTests(unittest.TestCase):
+    """Leaving takes the sound down rather than cutting it off."""
+
+    def _player(self, volume: int = 80, *, playing: bool = False) -> tuple:
+        """Return a player that records what it would have sent to mpv."""
+        from terminal_radio.services.player import MpvPlayer
+
+        player = MpvPlayer(("mpv",), Path("/tmp/unused.sock"), volume=volume)
+        sent: list[list[object]] = []
+        player._send = sent.append  # type: ignore[method-assign]
+        if playing:
+            player.__dict__["_process"] = _AliveProcess()
+        return player, sent
+
+    def test_nothing_is_sent_when_no_stream_is_loaded(self) -> None:
+        player, sent = self._player()
+
+        player.fade_out(1.0)
+
+        self.assertEqual(sent, [])
+
+    def test_a_zero_length_fade_does_nothing(self) -> None:
+        """goodbye_seconds may be zero, which means leave at once."""
+        player, sent = self._player(playing=True)
+
+        player.fade_out(0)
+
+        self.assertEqual(sent, [])
+
+    def test_the_ramp_reaches_silence(self) -> None:
+        """It steps downward and ends at nothing, never rising on the way."""
+        import time
+
+        player, sent = self._player(volume=100, playing=True)
+
+        player.fade_out(0.2)
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and (
+            not sent or sent[-1][-1] != 0
+        ):
+            time.sleep(0.02)
+
+        levels = [command[-1] for command in sent]
+        self.assertTrue(levels, "the fade sent nothing")
+        self.assertEqual(levels[-1], 0)
+        self.assertEqual(levels, sorted(levels, reverse=True))
+        # The level the listener chose is what the next run starts at.
+        self.assertEqual(player.volume, 100)
+
+    def test_a_level_reported_during_a_fade_is_not_taken_as_a_choice(self) -> None:
+        """mpv echoes the ramp back; that must not overwrite the real level."""
+        import json
+
+        player, _ = self._player(volume=90)
+        player._fading = True
+
+        player._handle_message(
+            json.dumps(
+                {"event": "property-change", "name": "volume", "data": 12}
+            ).encode()
+        )
+
+        self.assertEqual(player.volume, 90)
+
+
+class _AliveProcess:
+    """The little of subprocess.Popen that is_running actually looks at."""
+
+    def poll(self) -> None:
+        return None

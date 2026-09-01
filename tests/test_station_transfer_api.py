@@ -7,11 +7,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 from terminal_radio.core.config import Settings
 from terminal_radio.core.exceptions import RadioError
 from terminal_radio.enums import Band
 from terminal_radio.models import Station
-from terminal_radio.routers.stations import list_stations
+from terminal_radio.dependencies import provide_radio_service
+from terminal_radio.main import create_app
 from terminal_radio.services import (
     CustomStationStore,
     HistoryLog,
@@ -58,6 +61,13 @@ class MemoryPlayer:
 
     def device(self) -> str | None:
         return None
+
+    def fade_out(self, seconds: float) -> None:
+        self.faded = seconds
+
+    def drain_program_changes(self) -> tuple[str, ...]:
+        announced, self.announced = tuple(getattr(self, "announced", ())), []
+        return announced
 
 
 def make_station(slug: str, name: str, band: Band = Band.FM) -> Station:
@@ -162,14 +172,26 @@ class StationApiSearchTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.directory.cleanup()
 
-    def test_api_returns_merged_catalog_and_optional_query(self) -> None:
-        merged = list_stations(service=self.service, band=None, q=None)
-        searched = list_stations(service=self.service, band=None, q="talk")
-        filtered = list_stations(service=self.service, band=Band.FM, q="news")
+    def _slugs(self, **params: object) -> list[str]:
+        """Ask the running endpoint, so routing and parsing are covered too."""
+        app = create_app(Settings(data_dir=Path(self.directory.name)))
+        app.dependency_overrides[provide_radio_service] = lambda: self.service
+        with TestClient(app) as client:
+            response = client.get("/stations", params=params)
+        self.assertEqual(response.status_code, 200)
+        return [item["slug"] for item in response.json()["items"]]
 
-        self.assertEqual([item.slug for item in merged.items], ["builtin-news", "custom-talk"])
-        self.assertEqual([item.slug for item in searched.items], ["custom-talk"])
-        self.assertEqual([item.slug for item in filtered.items], ["builtin-news"])
+    def test_the_endpoint_returns_the_merged_catalog(self) -> None:
+        self.assertEqual(self._slugs(), ["builtin-news", "custom-talk"])
+
+    def test_the_endpoint_searches_free_text(self) -> None:
+        self.assertEqual(self._slugs(q="talk"), ["custom-talk"])
+
+    def test_the_endpoint_narrows_by_band(self) -> None:
+        self.assertEqual(self._slugs(band="FM", q="news"), ["builtin-news"])
+
+    def test_the_endpoint_narrows_by_metadata(self) -> None:
+        self.assertEqual(self._slugs(genre="news"), [])
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from terminal_radio.enums import Band
+from terminal_radio.enums import Band, Genre, Region
 from terminal_radio.models import Station
 
 
@@ -17,8 +17,13 @@ class StationRead(BaseModel):
     band: Band
     dial: str
     url: str
+    fallback_urls: tuple[str, ...] = ()
     frequency: str | None = None
     description: str | None = None
+    network: str | None = None
+    regions: tuple[Region, ...] = ()
+    genres: tuple[Genre, ...] = ()
+    languages: tuple[str, ...] = ()
 
     @classmethod
     def from_domain(cls, station: Station) -> "StationRead":

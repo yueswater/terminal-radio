@@ -2,10 +2,29 @@
 
 Screen {
     background: $background;
+    layers: base topbar;
 }
 
 #tabs {
     height: 1fr;
+}
+
+/* The search icon floats over the right end of the tab bar. Its own layer keeps
+   the tabs at the full width of the row rather than making room for it, and it
+   is only as wide as the glyph so it covers nothing but the last two columns. */
+#search-button {
+    layer: topbar;
+    dock: right;
+    width: auto;
+    height: 1;
+    padding: 0 1;
+    background: $surface;
+    color: $text-muted;
+}
+
+#search-button:hover {
+    background: $primary;
+    color: $block-cursor-foreground;
 }
 
 Tabs {
@@ -52,7 +71,7 @@ TabPane {
 
 .table-action-spacer,
 .table-action-footer-spacer,
-#history-actions, #settings-actions {
+#history-actions, #settings-actions, #now-playing-actions {
     height: 1;
 }
 
@@ -61,15 +80,16 @@ TabPane {
     align: center middle;
 }
 
-#history-actions, #settings-actions {
+#history-actions, #settings-actions, #now-playing-actions {
     align-horizontal: right;
 }
 
-#clear-history, #export-history, #reset-settings {
+#clear-history, #export-history, #reset-settings, #clear-now-playing,
+#export-now-playing {
     min-width: 18;
 }
 
-.main-station-table, #history, #settings {
+.main-station-table, #history, #now-playing-log, #settings {
     height: 25;
     max-height: 100%;
     overflow-y: auto;
@@ -111,6 +131,12 @@ DataTable > .datatable--cursor {
     height: 1;
 }
 
+/* The title left with the top row, so the readings that remain stay against
+   the right edge where they were. */
+#np-bottom {
+    align-horizontal: right;
+}
+
 #np-state {
     width: 11;
     text-style: bold;
@@ -124,8 +150,11 @@ DataTable > .datatable--cursor {
     text-style: bold;
 }
 
+/* The station is only as wide as its name, so the title starts right beside
+   it rather than at a column that moves with the terminal. */
 #np-station {
-    width: 1fr;
+    width: auto;
+    padding-right: 3;
     color: $foreground;
     text-style: bold;
 }
@@ -135,8 +164,11 @@ DataTable > .datatable--cursor {
     text-align: right;
 }
 
+/* The title slides along inside this slot, so it is cut to the exact width
+   by the widget rather than by an ellipsis here. */
 #np-program {
     width: 1fr;
+    color: $text-muted;
 }
 
 #np-device {
@@ -412,6 +444,15 @@ AboutPanel {
     color: $text-muted;
 }
 
+/* Backup-stream badge. It has no width of its own when empty, so the bar
+   reads exactly as it did before fallbacks existed. */
+#np-fallback {
+    width: auto;
+    color: $warning;
+    text-style: bold;
+    padding: 0 1;
+}
+
 /* Notifications sit in the top right corner instead of the default bottom. */
 ToastRack {
     dock: top;
@@ -551,6 +592,12 @@ Screen.-compact #np-dial {
 }
 
 Screen.-compact #np-device {
+    display: none;
+}
+
+/* A narrow terminal needs every column of the tab bar, and the slash key still
+   opens the search the icon stands for. */
+Screen.-compact #search-button {
     display: none;
 }
 

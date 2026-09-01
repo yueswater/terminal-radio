@@ -33,6 +33,9 @@ class StationHealthSnapshot:
     health: StationHealth
     latency_seconds: float | None
     checked_at: float
+    # Which address answered. None when none of them did, so a caller can tell
+    # "the primary is down but a backup carries it" from "the station is off".
+    endpoint_index: int | None = None
 
 
 class StationHealthService:
@@ -122,9 +125,34 @@ class StationHealthService:
         return cached
 
     def _probe(self, station: Station) -> StationHealthSnapshot:
-        started = self._clock()
+        """Try each address in turn and report the first one that answers.
+
+        A healthy station costs one request, the same as before fallbacks
+        existed. Only a station whose primary is down pays for the rest.
+        """
+        for index, url in enumerate(station.stream_urls):
+            started = self._clock()
+            if not self._responds(url):
+                continue
+
+            elapsed = max(self._clock() - started, 0.0)
+            health = (
+                StationHealth.SLOW
+                if elapsed >= STATION_SLOW_SECONDS
+                else StationHealth.ONLINE
+            )
+            return StationHealthSnapshot(
+                station.slug, health, elapsed, self._clock(), index
+            )
+
+        return StationHealthSnapshot(
+            station.slug, StationHealth.OFFLINE, None, self._clock(), None
+        )
+
+    def _responds(self, url: str) -> bool:
+        """Return whether one address hands back the first byte of a stream."""
         request = Request(
-            station.url,
+            url,
             headers={"Range": "bytes=0-0", "User-Agent": "radio/0.1"},
             method="GET",
         )
@@ -134,22 +162,5 @@ class StationHealthService:
             ) as response:
                 response.read(1)
         except (OSError, TimeoutError, URLError, ValueError):
-            return StationHealthSnapshot(
-                station.slug,
-                StationHealth.OFFLINE,
-                None,
-                self._clock(),
-            )
-
-        elapsed = max(self._clock() - started, 0.0)
-        health = (
-            StationHealth.SLOW
-            if elapsed >= STATION_SLOW_SECONDS
-            else StationHealth.ONLINE
-        )
-        return StationHealthSnapshot(
-            station.slug,
-            health,
-            elapsed,
-            self._clock(),
-        )
+            return False
+        return True

@@ -5,7 +5,14 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from terminal_radio.dependencies import RadioServiceDep
-from terminal_radio.schemas import PlayerStatusRead, PlayRequest
+from terminal_radio.core.exceptions import RadioError
+from terminal_radio.schemas import (
+    MuteRequest,
+    PlayerStatusRead,
+    PlayRequest,
+    SleepRequest,
+    VolumeRequest,
+)
 
 router = APIRouter(prefix="/player", tags=["player"])
 
@@ -44,3 +51,32 @@ def resume(service: RadioServiceDep) -> PlayerStatusRead:
 def stop(service: RadioServiceDep) -> PlayerStatusRead:
     """Stop playback."""
     return PlayerStatusRead.from_domain(service.stop())
+
+
+@router.post("/volume", response_model=PlayerStatusRead, summary="Set the volume")
+def set_volume(payload: VolumeRequest, service: RadioServiceDep) -> PlayerStatusRead:
+    """Set an absolute level, or move the current one by a step."""
+    if payload.level is not None:
+        return PlayerStatusRead.from_domain(service.set_volume(payload.level))
+    if payload.delta is not None:
+        return PlayerStatusRead.from_domain(service.adjust_volume(payload.delta))
+    return PlayerStatusRead.from_domain(service.status())
+
+
+@router.post("/mute", response_model=PlayerStatusRead, summary="Mute or unmute")
+def set_muted(payload: MuteRequest, service: RadioServiceDep) -> PlayerStatusRead:
+    """Silence the output, or bring it back."""
+    if service.status().muted != payload.muted:
+        service.toggle_mute()
+    return PlayerStatusRead.from_domain(service.status())
+
+
+@router.post("/sleep", response_model=PlayerStatusRead, summary="Set the sleep timer")
+def set_sleep_timer(
+    payload: SleepRequest, service: RadioServiceDep
+) -> PlayerStatusRead:
+    """Stop playback after the given number of minutes, or cancel the timer."""
+    try:
+        return PlayerStatusRead.from_domain(service.set_sleep_timer(payload.minutes))
+    except ValueError as error:
+        raise RadioError(str(error)) from error

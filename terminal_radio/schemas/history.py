@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from terminal_radio.enums import HistoryEventType
 from terminal_radio.models import HistoryEvent
+from terminal_radio.models.now_playing import NowPlayingEntry
 from terminal_radio.services.history import StationSummary
 
 
@@ -69,4 +70,33 @@ class SummaryListRead(BaseModel):
     def from_domain(cls, summaries: tuple[StationSummary, ...]) -> "SummaryListRead":
         """Build the payload from a tuple of domain summaries."""
         items = [StationSummaryRead.from_domain(summary) for summary in summaries]
+        return cls(total=len(items), items=items)
+
+
+class NowPlayingRead(BaseModel):
+    """Public representation of one announced title."""
+
+    at: datetime
+    station_slug: str
+    station_name: str
+    title: str
+
+    @classmethod
+    def from_domain(cls, entry: NowPlayingEntry) -> "NowPlayingRead":
+        """Build the payload from a domain entry."""
+        return cls(**entry.model_dump())
+
+
+class NowPlayingListRead(BaseModel):
+    """Envelope returned when listing announced titles."""
+
+    total: int
+    items: list[NowPlayingRead]
+
+    @classmethod
+    def from_domain(
+        cls, entries: tuple[NowPlayingEntry, ...]
+    ) -> "NowPlayingListRead":
+        """Build the payload from a tuple of domain entries."""
+        items = [NowPlayingRead.from_domain(entry) for entry in entries]
         return cls(total=len(items), items=items)

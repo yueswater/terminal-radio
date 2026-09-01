@@ -13,6 +13,8 @@ The state directory is the only one written to. It is outside the installation,
 so upgrading or reinstalling never loses a listening history.
 """
 
+import os
+import tempfile
 from pathlib import Path
 
 from platformdirs import user_config_dir, user_state_dir
@@ -27,6 +29,22 @@ BUNDLED_DIR = PACKAGE_DIR / "data"
 
 CONFIG_DIR = Path(user_config_dir(APP_NAME))
 STATE_DIR = Path(user_state_dir(APP_NAME))
+
+CONTROL_SOCKET_NAME = "control.sock"
+CONTROL_LOCK_NAME = "control.lock"
+
+
+def default_runtime_dir() -> Path:
+    """Return the directory holding the control socket and its lock.
+
+    Not the state directory. A unix socket path is capped near a hundred bytes,
+    and on macOS the state directory alone is most of that budget, so the
+    socket lives somewhere short and per user instead. Nothing here outlives a
+    restart, which is exactly right for a lock naming a running process.
+    """
+    if runtime := os.getenv("XDG_RUNTIME_DIR"):
+        return Path(runtime) / APP_NAME
+    return Path(tempfile.gettempdir()) / f"{APP_NAME}-{os.getuid()}"
 
 STATIONS_NAME = "stations.toml"
 THEMES_NAME = "themes.yml"
