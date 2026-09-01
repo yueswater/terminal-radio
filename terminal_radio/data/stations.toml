@@ -438,7 +438,7 @@ band = "AM"
 frequency = "855"
 network = "民本電台"
 regions = ["taipei"]
-genres = ["talk", "music", "community"]
+genres = ["community", "music", "culture", "religion"]
 languages = ["zh-Hant", "nan"]
 url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am855/chunklist.m3u8"
 
@@ -450,8 +450,9 @@ band = "AM"
 frequency = "1296"
 network = "民本電台"
 regions = ["taipei"]
-genres = ["talk", "music", "community"]
-languages = ["zh-Hant", "nan"]
+genres = ["talk", "music", "culture", "community"]
+languages = ["nan", "zh-Hant"]
+description = "台語談話與台灣民謠"
 url = "https://streamak0134.akamaized.net/live0134lh-5gst/_definst_/am1296/chunklist.m3u8"
 
 [[stations]]
@@ -496,10 +497,11 @@ name = "勝利之聲廣播電台"
 short_name = "勝利之聲"
 band = "AM"
 frequency = "756"
-description = "屏東"
-regions = ["pingtung"]
+description = "台南 · 雲嘉南高澎"
+regions = ["tainan", "kaohsiung", "chiayi", "yunlin", "penghu"]
 genres = ["community", "music", "talk"]
 languages = ["zh-Hant", "nan"]
+network = "勝利之聲廣播公司"
 url = "http://test.taiwan-radio.tw:8000/PH.AM756"
 
 [[stations]]
@@ -508,9 +510,10 @@ name = "彰化國聲廣播電台"
 short_name = "國聲"
 band = "AM"
 frequency = "1179"
-regions = ["changhua"]
-genres = ["community", "music", "talk"]
+regions = ["changhua", "taichung", "nantou", "yunlin", "chiayi", "miaoli"]
+genres = ["community", "news", "culture", "education", "music"]
 languages = ["zh-Hant", "nan"]
+network = "國聲廣播公司"
 url = "http://test.taiwan-radio.tw:8000/CH.AM1179"
 
 [[stations]]
@@ -522,6 +525,7 @@ frequency = "801"
 regions = ["tainan"]
 genres = ["community", "music", "talk"]
 languages = ["zh-Hant", "nan"]
+network = "建國廣播公司"
 url = "http://test.taiwan-radio.tw:8000/TN.AM801"
 
 [[stations]]
