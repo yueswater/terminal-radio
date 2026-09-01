@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/yueswater/terminal-radio/compare/v0.2.0...v0.3.0) (2026-09-01)
+
+
+### Features
+
+* station metadata, backup streams, shell control and a track log ([42993fb](https://github.com/yueswater/terminal-radio/commit/42993fb39be48141a8783d93440bae94d13e766a))
+
+
+### Fixes
+
+* **stations:** correct where the southern AM stations are heard ([9b030dc](https://github.com/yueswater/terminal-radio/commit/9b030dc90e73ccd1162ca7944c0b9666d5f7a4f5))
+
 ## [0.2.0](https://github.com/yueswater/terminal-radio/compare/v0.1.0...v0.2.0) (2026-08-30)
 
 
