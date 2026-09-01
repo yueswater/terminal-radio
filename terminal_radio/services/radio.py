@@ -628,6 +628,16 @@ class RadioService:
         )
         return self._session_listened + running
 
+    @property
+    def history_revision(self) -> int:
+        """Return a number that changes whenever the listening history does."""
+        return self._history.revision
+
+    @property
+    def now_playing_revision(self) -> int:
+        """Return a number that changes whenever the track log does."""
+        return 0 if self._now_playing is None else self._now_playing.revision
+
     def history(self, limit: int | None = None) -> tuple[HistoryEvent, ...]:
         """Return the most recent history events, newest first."""
         return self._history.read(limit)

@@ -81,7 +81,7 @@ class RadioApp(App[None]):
     """Terminal UI listing stations per band and controlling playback."""
 
     CSS_PATH = "radio.tcss"
-    TITLE = "Terminal Radio"
+    TITLE = "Wavepick"
 
     # Text is typed only on the modal screens that ask for it. The palette is a
     # second, unlocalized command surface on top of the search this app owns,
@@ -120,6 +120,9 @@ class RadioApp(App[None]):
         self._locales = locales
         self._settings = settings or get_settings()
         self._status_timer: Timer | None = None
+        # What each log looked like when its table was last drawn.
+        self._history_revision = -1
+        self._now_playing_revision = -1
         # Filled in when the listener asks to upgrade. The interface cannot
         # replace the files it is running from, so it leaves the command for
         # whoever started it to run once it has gone.
@@ -285,6 +288,27 @@ class RadioApp(App[None]):
         bars = self.query(NowPlayingBar)
         if bars:
             bars.first().show(self._service.status())
+        self.sync_open_log()
+
+    def sync_open_log(self) -> None:
+        """Reload the log on screen when what it lists has changed.
+
+        A play finishing, or a station announcing a title, adds a row while
+        somebody may be looking straight at the table. Only the tab in front is
+        reloaded, and only when its log actually moved: rebuilding a table on
+        every tick would drag the cursor about for nothing.
+        """
+        tabs = self.query(TabbedContent)
+        if not tabs:
+            return
+
+        active = tabs.first().active
+        if active == HISTORY_TAB:
+            if self._service.history_revision != self._history_revision:
+                self.refresh_history()
+        elif active == NOW_PLAYING_TAB:
+            if self._service.now_playing_revision != self._now_playing_revision:
+                self.refresh_now_playing()
 
     def on_data_table_row_selected(self, event: StationTable.RowSelected) -> None:
         """Act on the activated row of whichever table posted the event."""
@@ -412,10 +436,12 @@ class RadioApp(App[None]):
 
     def refresh_history(self) -> None:
         """Reload the listening totals of the history tab."""
+        self._history_revision = self._service.history_revision
         self.query_one(HistoryTable).show(self._service.summaries())
 
     def refresh_now_playing(self) -> None:
         """Reload the track table from the announcement log."""
+        self._now_playing_revision = self._service.now_playing_revision
         tables = self.query(NowPlayingTable)
         if not tables:
             return

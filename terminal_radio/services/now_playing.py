@@ -36,6 +36,14 @@ class NowPlayingLog:
         self._retention_days = retention_days
         self._last: dict[str, tuple[str, datetime]] = {}
         self._since_trim = 0
+        # Bumped whenever the log changes, so a table on screen can tell
+        # whether it is out of date without reading the file again.
+        self._revision = 0
+
+    @property
+    def revision(self) -> int:
+        """Return a number that changes whenever the log does."""
+        return self._revision
 
     def record(self, station: Station, title: str) -> NowPlayingEntry | None:
         """Log a title unless it repeats what the station just said.
@@ -107,6 +115,7 @@ class NowPlayingLog:
             self._path.unlink(missing_ok=True)
         except OSError:
             return False
+        self._revision += 1
         return True
 
     def trim(self) -> int:
@@ -139,6 +148,7 @@ class NowPlayingLog:
         except OSError:
             return False
 
+        self._revision += 1
         self._since_trim += 1
         if self._since_trim >= NOW_PLAYING_TRIM_EVERY:
             self._since_trim = 0

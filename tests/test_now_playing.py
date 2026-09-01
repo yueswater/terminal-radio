@@ -8,6 +8,10 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from textual.widgets import TabbedContent
+
+from terminal_radio.constants.tui import HISTORY_TAB, HOME_TAB
+from terminal_radio.core.config import Settings
 from terminal_radio.enums import Band
 from terminal_radio.models import Station
 from terminal_radio.models.now_playing import NowPlayingEntry
@@ -414,3 +418,141 @@ class TitleTidyingTests(unittest.TestCase):
         from terminal_radio.services.player import tidy_title
 
         self.assertEqual(tidy_title(" - · "), "")
+
+
+class LiveTableTests(unittest.IsolatedAsyncioTestCase):
+    """A log that grows while its table is on screen reloads it."""
+
+    def _app(self, directory: str):
+        from terminal_radio.core.i18n import LocaleRepository
+        from terminal_radio.services import NowPlayingLog, ThemeRepository
+        from terminal_radio.tui.app import RadioApp
+
+        settings = Settings(
+            data_dir=Path(directory),
+            autoplay_last_station=False,
+            status_refresh_seconds=60,
+        )
+        service = RadioService(
+            catalog=StationCatalog.from_file(settings.stations_file),
+            player=AnnouncingPlayer(),
+            history=HistoryLog(settings.history_file),
+            state=StateStore(settings.state_file),
+            autoplay_last_station=False,
+            now_playing=NowPlayingLog(settings.now_playing_file),
+        )
+        app = RadioApp(
+            service,
+            ThemeRepository.from_file(settings.themes_file),
+            LocaleRepository.from_directory(settings.locales_dir, settings.locale),
+            settings,
+        )
+        return app, service
+
+    async def test_a_title_announced_while_watching_appears(self) -> None:
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+                self.assertEqual(table.row_count, 0)
+
+                service.play("icrt")
+                service._player.queue("Coldplay - Yellow")
+                service.status()
+                app.sync_open_log()
+                await pilot.pause()
+
+                self.assertEqual(table.row_count, 1)
+
+    async def test_a_finished_play_reaches_the_history_table(self) -> None:
+        from terminal_radio.tui.widgets import HistoryTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = HISTORY_TAB
+                await pilot.pause()
+                await pilot.pause()
+                table = app.query_one(HistoryTable)
+                self.assertEqual(table.row_count, 0)
+
+                service.play("icrt")
+                service.stop()
+                app.sync_open_log()
+                await pilot.pause()
+
+                self.assertEqual(table.row_count, 1)
+
+    async def test_an_unchanged_log_is_not_redrawn(self) -> None:
+        """Rebuilding a table every second would drag the cursor about."""
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+
+                drawn = []
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+                original = table.show
+                table.show = lambda entries: (drawn.append(entries), original(entries))[1]
+
+                for _ in range(5):
+                    app.sync_open_log()
+                await pilot.pause()
+
+                self.assertEqual(drawn, [])
+
+    async def test_the_cursor_stays_where_the_listener_left_it(self) -> None:
+        """New titles arrive at the top; the row being read must not slide."""
+        from terminal_radio.services import NowPlayingLog
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            log = NowPlayingLog(Settings(data_dir=Path(directory)).now_playing_file)
+            for title in ("First", "Second", "Third"):
+                log.record(service.get_station("icrt"), title)
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+                table.move_cursor(row=2)
+                await pilot.pause()
+                held = table.selected_entry
+
+                service.play("icrt")
+                service._player.queue("Fourth")
+                service.status()
+                app.sync_open_log()
+                await pilot.pause()
+
+                self.assertEqual(table.row_count, 4)
+                self.assertEqual(table.selected_entry, held)
+
+    async def test_only_the_tab_in_front_is_reloaded(self) -> None:
+        from terminal_radio.tui.widgets import NowPlayingTable
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = HOME_TAB
+                await pilot.pause()
+
+                service.play("icrt")
+                service._player.queue("Coldplay - Yellow")
+                service.status()
+                app.sync_open_log()
+                await pilot.pause()
+
+                table = app.query_one("#now-playing-log", NowPlayingTable)
+                self.assertEqual(table.row_count, 0)

@@ -31,6 +31,14 @@ class HistoryLog:
     def __init__(self, path: Path, limit: int = 200) -> None:
         self._path = path
         self._limit = limit
+        # Bumped whenever the log changes, so a table on screen can tell
+        # whether it is out of date without reading the file again.
+        self._revision = 0
+
+    @property
+    def revision(self) -> int:
+        """Return a number that changes whenever the log does."""
+        return self._revision
 
     def append(self, event: HistoryEvent) -> None:
         """Add one event, silently ignoring an unwritable location."""
@@ -40,6 +48,7 @@ class HistoryLog:
                 stream.write(event.model_dump_json() + "\n")
         except OSError:
             return
+        self._revision += 1
 
     def read(self, limit: int | None = None) -> tuple[HistoryEvent, ...]:
         """Return the most recent events, newest first."""
@@ -78,6 +87,7 @@ class HistoryLog:
             self._path.unlink(missing_ok=True)
         except OSError:
             return False
+        self._revision += 1
         return True
 
     def summarize(self, limit: int | None = None) -> tuple[StationSummary, ...]:
