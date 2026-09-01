@@ -139,6 +139,7 @@ messages:
   update.now: Update now
   update.by_hand: This copy was not installed by a package manager, so update it the way you installed it.
   update.by_hand_checkout: This copy runs from a checkout, so update it with git.
+  update.command: "Run: {command}"
   update.upgrading: Updating to {version}...
   update.upgraded: Updated. Run radio again to use it.
   update.upgrade_failed: "Could not update. Run this yourself: {command}"
@@ -193,7 +194,7 @@ messages:
   sleep.set: Set
   sleep.invalid: Enter 1–1440 minutes
 
-  home.tagline: Terminal radio for Taiwan
+  home.tagline: Terminal Radio for Taiwan
   home.hint: Arrow keys switch tabs, enter plays
 
   goodbye.title: "See you~"

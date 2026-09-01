@@ -16,6 +16,7 @@ import urllib.request
 from dataclasses import dataclass
 from importlib.metadata import Distribution, PackageNotFoundError
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from terminal_radio.constants.update import (
     PYPI_RELEASE_URL,
@@ -74,6 +75,8 @@ class Installation:
     upgrade_command: tuple[str, ...] | None
     # Why there is no command, for the one case worth explaining: a checkout.
     editable: bool = False
+    # A safe command to show for a copy the app must not replace itself.
+    manual_command: tuple[str, ...] | None = None
 
     @property
     def upgradable(self) -> bool:
@@ -93,9 +96,14 @@ def describe_installation(distribution: str) -> Installation:
     except PackageNotFoundError:
         return Installation(None)
 
-    if _is_editable(distribution_metadata):
+    editable_path = _editable_path(distribution_metadata)
+    if editable_path is not None:
         # A checkout, where upgrading means git, not an index.
-        return Installation(None, editable=True)
+        return Installation(
+            None,
+            editable=True,
+            manual_command=("git", "-C", str(editable_path), "pull", "--ff-only"),
+        )
 
     location = _location(distribution_metadata)
     if location is None:
@@ -110,19 +118,24 @@ def describe_installation(distribution: str) -> Installation:
     return Installation(None)
 
 
-def _is_editable(distribution_metadata: Distribution) -> bool:
-    """Return whether the distribution points at a working copy."""
+def _editable_path(distribution_metadata: Distribution) -> Path | None:
+    """Return the working-copy path named by editable install metadata."""
     try:
         raw = distribution_metadata.read_text("direct_url.json")
     except OSError:
-        return False
+        return None
     if not raw:
-        return False
+        return None
     try:
         document = json.loads(raw)
     except json.JSONDecodeError:
-        return False
-    return bool(document.get("dir_info", {}).get("editable"))
+        return None
+    if not document.get("dir_info", {}).get("editable"):
+        return None
+    url = urlparse(str(document.get("url", "")))
+    if url.scheme != "file" or not url.path:
+        return None
+    return Path(unquote(url.path))
 
 
 def _location(distribution_metadata: Distribution) -> Path | None:

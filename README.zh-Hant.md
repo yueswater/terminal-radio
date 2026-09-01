@@ -1,12 +1,12 @@
-# Terminal Radio
+# 拾波
 
 <p align="right">
   <a href="https://github.com/yueswater/terminal-radio/blob/main/README.md">English</a> · <strong>繁體中文</strong>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/yueswater/terminal-radio/main/assets/terminal-radio-logo.svg" width="560"
-       alt="終端機畫面與 RADIO 字樣的彩色漸層 ASCII Logo">
+  <img src="https://raw.githubusercontent.com/yueswater/terminal-radio/main/assets/terminal-radio-logo.svg" width="760"
+       alt="終端機畫面與 WAVEPICK 字樣的彩色漸層 ASCII Logo">
 </p>
 
 ![python](https://img.shields.io/badge/python-3.12%2B-3fb950?style=flat-square&logo=python&logoColor=white) ![Textual](https://img.shields.io/badge/Textual-8.2-3fb950?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-3fb950?style=flat-square&logo=fastapi&logoColor=white) ![player](https://img.shields.io/badge/player-mpv-3fb950?style=flat-square&logo=mpv&logoColor=white) ![stations](https://img.shields.io/badge/stations-44-3fb950?style=flat-square) ![themes](https://img.shields.io/badge/themes-14-3fb950?style=flat-square) ![i18n](https://img.shields.io/badge/i18n-zh--Hant%20%7C%20en-3fb950?style=flat-square) ![platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-3fb950?style=flat-square) ![license](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)

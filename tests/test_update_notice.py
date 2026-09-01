@@ -189,6 +189,10 @@ class InstallationTests(unittest.TestCase):
 
         self.assertFalse(found.upgradable)
         self.assertTrue(found.editable)
+        self.assertEqual(
+            found.manual_command,
+            ("git", "-C", "/home/me/terminal-radio", "pull", "--ff-only"),
+        )
 
     def test_an_install_we_cannot_name_offers_nothing(self) -> None:
         """Better to say so than to run a command that may be wrong."""
@@ -435,13 +439,31 @@ class UpdateScreenTests(unittest.IsolatedAsyncioTestCase):
             async with app.run_test(size=(96, 24)) as pilot:
                 await pilot.pause()
                 app.push_screen(
-                    UpdateScreen(app.t, "0.3.0", "0.3.1", Installation(None, editable=True))
+                    UpdateScreen(
+                        app.t,
+                        "0.3.0",
+                        "0.3.1",
+                        Installation(
+                            None,
+                            editable=True,
+                            manual_command=(
+                                "git",
+                                "-C",
+                                "/home/me/terminal-radio",
+                                "pull",
+                                "--ff-only",
+                            ),
+                        ),
+                    )
                 )
                 await pilot.pause()
 
                 self.assertFalse(app.screen.query("#update-now"))
                 hint = str(app.screen.query_one("#update-hint", Static).render())
-                self.assertIn("git", hint)
+                self.assertIn(
+                    "git -C /home/me/terminal-radio pull --ff-only",
+                    hint,
+                )
 
     async def test_showing_the_notice_uses_one_of_the_three(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -11,6 +11,7 @@ from terminal_radio.constants.config import default_locales_dir
 from terminal_radio.core.i18n import LocaleRepository
 from terminal_radio.tui.formatting import format_clock
 from terminal_radio.tui.screens import GoodbyeScreen
+from terminal_radio.tui.widgets import LogoBlock
 
 
 class GoodbyeCopyTests(unittest.TestCase):
@@ -27,6 +28,24 @@ class GoodbyeCopyTests(unittest.TestCase):
 
 
 class GoodbyeLayoutTests(unittest.IsolatedAsyncioTestCase):
+    async def test_wavepick_mark_uses_the_compact_scale(self) -> None:
+        """The longer Wavepick mark must not fill the farewell screen."""
+        locales = LocaleRepository.from_directory(default_locales_dir(), "zh-Hant")
+        app = App[None]()
+        screen = GoodbyeScreen(locales.translator("zh-Hant"), 0, delay=60)
+
+        async with app.run_test(size=(100, 30)) as pilot:
+            await app.push_screen(screen)
+            await pilot.pause()
+
+            logo = screen.query_one("#goodbye-logo", LogoBlock)
+            self.assertEqual(logo._scale, 1)
+            before = tuple(str(line.styles.color) for line in logo.query(".logo-line"))
+            logo.advance_rainbow()
+            after = tuple(str(line.styles.color) for line in logo.query(".logo-line"))
+            self.assertNotEqual(before, after)
+            self.assertGreater(len(set(after)), 1)
+
     async def test_farewell_title_is_plain_localized_text(self) -> None:
         locales = LocaleRepository.from_directory(default_locales_dir(), "zh-Hant")
 

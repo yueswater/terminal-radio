@@ -456,7 +456,7 @@ CustomStationFormScreen {
 AboutPanel {
     height: 1fr;
     align-horizontal: center;
-    padding: 1 2;
+    padding: 4 2;
     scrollbar-size-vertical: 1;
 }
 
@@ -632,9 +632,12 @@ Screen.-wide #now-playing {
     padding: 1 3;
 }
 
-Screen.-wide HomePanel,
-Screen.-wide AboutPanel {
+Screen.-wide HomePanel {
     padding: 2 4;
+}
+
+Screen.-wide AboutPanel {
+    padding: 4;
 }
 
 Screen.-compact #np-dial {

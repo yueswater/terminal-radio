@@ -90,6 +90,23 @@ class NavigableTable(DataTable[str]):
         return max(smallest, min(largest, int(width * fraction)))
 
     @property
+    def selected_key(self) -> str | None:
+        """Return the key of the row under the cursor, if any."""
+        if not self.is_mounted or self.row_count == 0:
+            return None
+        row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+        return str(row_key.value)
+
+    def focus_key(self, key: str | None) -> None:
+        """Put the cursor back on a row, when that row is still there."""
+        if key is None:
+            return
+        try:
+            self.move_cursor(row=self.get_row_index(key))
+        except Exception:
+            return
+
+    @property
     def scrolls_sideways_only(self) -> bool:
         """Return whether the rows fit but the columns run past the right edge."""
         return self.max_scroll_y == 0 and self.max_scroll_x > 0
@@ -283,7 +300,13 @@ class HistoryTable(NavigableTable):
         self.show(self._summaries)
 
     def show(self, summaries: tuple[StationSummary, ...]) -> None:
-        """Replace the rows with the given listening totals."""
+        """Replace the rows with the given listening totals.
+
+        The cursor stays on whichever station it was on. The table is reloaded
+        while it is being read, and moving somebody's place under them for a
+        row that changed elsewhere would be worse than not reloading at all.
+        """
+        held = self.selected_key
         self.clear()
         self._summaries = summaries
         for summary in summaries:
@@ -296,6 +319,7 @@ class HistoryTable(NavigableTable):
                 format_timestamp(summary.last_played_at),
                 key=summary.station_slug,
             )
+        self.focus_key(held)
 
 
 class NowPlayingTable(NavigableTable):
@@ -323,7 +347,12 @@ class NowPlayingTable(NavigableTable):
         self.show(self._entries)
 
     def show(self, entries: tuple[NowPlayingEntry, ...]) -> None:
-        """Replace the rows with the given announcements."""
+        """Replace the rows with the given announcements.
+
+        New titles arrive at the top, so holding the row number would slide the
+        listener down the list. What is held is the entry they were looking at.
+        """
+        held = self.selected_entry
         self.clear()
         self._entries = entries
         for index, entry in enumerate(entries):
@@ -335,6 +364,19 @@ class NowPlayingTable(NavigableTable):
                 # position rather than anything the entry carries.
                 key=str(index),
             )
+        if held is not None and held in entries:
+            self.move_cursor(row=entries.index(held))
+
+    @property
+    def selected_entry(self) -> NowPlayingEntry | None:
+        """Return the announcement under the cursor, if any."""
+        if not self.is_mounted or self.row_count == 0:
+            return None
+        row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+        try:
+            return self._entries[int(str(row_key.value))]
+        except (TypeError, ValueError, IndexError):
+            return None
 
 
 class ListeningStatsPanel(VerticalScroll):
@@ -439,13 +481,7 @@ class SettingsTable(NavigableTable):
         if selected in keys:
             self.move_cursor(row=keys.index(selected))
 
-    @property
-    def selected_key(self) -> str | None:
-        """Return the key of the row under the cursor, if any."""
-        if not self.is_mounted or self.row_count == 0:
-            return None
-        row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
-        return str(row_key.value)
+
 
 
 class ThemeCard(ListItem):
@@ -517,9 +553,24 @@ class ThemeGallery(ListView):
 class LogoBlock(Vertical):
     """The word mark, drawn at a scale the caller chooses."""
 
-    def __init__(self, scale: int = 1, **kwargs: object) -> None:
+    RAINBOW = (
+        "#ff4d6d",
+        "#ff9f1c",
+        "#ffd60a",
+        "#2ec4b6",
+        "#00b4d8",
+        "#4361ee",
+        "#b5179e",
+    )
+
+    def __init__(
+        self, scale: int = 1, rainbow: bool = False, **kwargs: object
+    ) -> None:
         super().__init__(**kwargs)
         self._scale = scale
+        self._rainbow = rainbow
+        self._rainbow_frame = 0
+        self._rainbow_timer: Timer | None = None
 
     def compose(self) -> ComposeResult:
         """Draw one static per line of the scaled art."""
@@ -531,6 +582,28 @@ class LogoBlock(Vertical):
         if scale != self._scale:
             self._scale = scale
             self.refresh(recompose=True)
+
+    def on_mount(self) -> None:
+        """Start the farewell-only spectrum animation."""
+        if self._rainbow:
+            self.advance_rainbow()
+            self._rainbow_timer = self.set_interval(0.12, self.advance_rainbow)
+
+    def on_unmount(self) -> None:
+        """Leave no animation timer behind when its screen closes."""
+        if self._rainbow_timer is not None:
+            self._rainbow_timer.stop()
+            self._rainbow_timer = None
+
+    def advance_rainbow(self) -> None:
+        """Move the spectrum down the five rows of the word mark."""
+        if not self._rainbow:
+            return
+        for row, line in enumerate(self.query(".logo-line")):
+            line.styles.color = self.RAINBOW[
+                (self._rainbow_frame + row) % len(self.RAINBOW)
+            ]
+        self._rainbow_frame = (self._rainbow_frame + 1) % len(self.RAINBOW)
 
 
 class HomePanel(VerticalScroll):

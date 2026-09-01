@@ -2,7 +2,7 @@
 
 DISTRIBUTION = "radiotui-tw"
 COMMAND = "radio"
-DISPLAY_NAME = "Terminal Radio"
+DISPLAY_NAME = "Wavepick"
 AUTHOR = "Anthony Sung"
 FIRST_YEAR = 2026
 HOMEPAGE = "https://github.com/yueswater/terminal-radio"

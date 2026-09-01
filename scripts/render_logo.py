@@ -3,7 +3,7 @@
 The terminal UI draws its word mark from `app.constants.logo.LOGO`, which is
 limited to what fits in a few terminal rows. The README has no such limit, so
 this script redraws the same idea on a finer grid: an app icon carrying a prompt
-and a pair of antennas, beside the RADIO word mark, all under one gradient.
+and a pair of antennas, beside the WAVEPICK word mark, all under one gradient.
 
 The letters come from `app.constants.logo`, the same font the terminal UI draws,
 so the two marks can never drift apart.
@@ -134,8 +134,8 @@ def render() -> str:
 
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"
      viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">
-  <title id="title">Terminal Radio</title>
-  <desc id="desc">An app icon with antennas and a prompt, beside the RADIO word mark.</desc>
+  <title id="title">Wavepick</title>
+  <desc id="desc">An app icon with antennas and a prompt, beside the WAVEPICK word mark.</desc>
   <defs>
     <linearGradient id="spectrum" gradientUnits="userSpaceOnUse"
                     x1="0" y1="0" x2="{width}" y2="0">

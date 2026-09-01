@@ -30,7 +30,7 @@ class Settings(BaseModel):
 
     model_config = {"frozen": True}
 
-    app_name: str = "Terminal Radio"
+    app_name: str = "Wavepick"
     stations_file: Path = Field(default_factory=default_stations_file)
     themes_file: Path = Field(default_factory=default_themes_file)
     locales_dir: Path = Field(default_factory=default_locales_dir)

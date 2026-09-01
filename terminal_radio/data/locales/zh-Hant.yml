@@ -139,6 +139,7 @@ messages:
   update.now: 立即更新
   update.by_hand: 這份不是由套件管理工具安裝的，請用當初的方式自行更新。
   update.by_hand_checkout: 這份是從原始碼安裝的，請用 git 更新。
+  update.command: "請執行：{command}"
   update.upgrading: 正在更新到 {version}⋯
   update.upgraded: 已更新，重新執行 radio 即可。
   update.upgrade_failed: 更新失敗，請手動執行：{command}
@@ -193,7 +194,7 @@ messages:
   sleep.set: 設定
   sleep.invalid: 請輸入 1–1440 分鐘
 
-  home.tagline: 臺灣終端機收音機
+  home.tagline: 臺灣廣播，盡在終端
   home.hint: 用左右鍵切換分頁，Enter 播放
 
   goodbye.title: "下次見～"

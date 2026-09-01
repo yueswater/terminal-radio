@@ -12,15 +12,21 @@ BLOCK = "█"
 # Five rows per glyph. Strokes are two cells wide, which is what keeps the
 # letters legible once a terminal renders them at one cell per character.
 FONT: dict[str, tuple[str, ...]] = {
+    "W": ("██   ██", "██   ██", "██ █ ██", "███████", " ██ ██ "),
     "R": ("██████ ", "██   ██", "██████ ", "██   ██", "██   ██"),
     "A": (" █████ ", "██   ██", "███████", "██   ██", "██   ██"),
+    "V": ("██   ██", "██   ██", "██   ██", " ██ ██ ", "  ███  "),
+    "E": ("███████", "██     ", "█████  ", "██     ", "███████"),
+    "P": ("██████ ", "██   ██", "██████ ", "██     ", "██     "),
     "D": ("██████ ", "██   ██", "██   ██", "██   ██", "██████ "),
     "I": ("██", "██", "██", "██", "██"),
     "O": (" ██████ ", "██    ██", "██    ██", "██    ██", " ██████ "),
+    "C": (" ██████ ", "██      ", "██      ", "██      ", " ██████ "),
+    "K": ("██   ██", "██  ██ ", "█████  ", "██  ██ ", "██   ██"),
 }
 
 GLYPH_ROWS = 5
-WORD = "RADIO"
+WORD = "WAVEPICK"
 
 # A shell prompt, drawn as a staircase. Five steps read as a chevron where three
 # blur into an arrow.

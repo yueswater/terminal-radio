@@ -26,6 +26,7 @@ from terminal_radio.services import (
 )
 from terminal_radio.tui.screens import StationSearchScreen
 from terminal_radio.tui.app import (
+    ABOUT_TAB,
     FAVORITES_TAB,
     HISTORY_TAB,
     HOME_TAB,
@@ -34,6 +35,7 @@ from terminal_radio.tui.app import (
     RadioApp,
 )
 from terminal_radio.tui.widgets import (
+    AboutPanel,
     HistoryTable,
     ListeningStatsPanel,
     SettingsTable,
@@ -98,6 +100,42 @@ class MemoryPlayer:
 
 
 class RadioAppTests(unittest.IsolatedAsyncioTestCase):
+    async def test_about_page_has_equal_breathing_room_and_owns_its_scroll(self) -> None:
+        """The about identity stays four rows from both edges and remains reachable."""
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(
+                data_dir=Path(directory),
+                autoplay_last_station=False,
+                status_refresh_seconds=60,
+            )
+            app = RadioApp(
+                build_radio_service(settings),
+                ThemeRepository.from_file(settings.themes_file),
+                LocaleRepository.from_directory(
+                    settings.locales_dir, settings.locale
+                ),
+                settings,
+            )
+
+            async with app.run_test(size=(120, 20)) as pilot:
+                app.query_one(TabbedContent).active = ABOUT_TAB
+                await pilot.pause()
+
+                pane = app.query_one(f"#{ABOUT_TAB}", TabPane)
+                panel = pane.query_one(AboutPanel)
+                self.assertEqual(panel.styles.padding.top, 4)
+                self.assertEqual(panel.styles.padding.bottom, 4)
+                self.assertGreater(panel.max_scroll_y, 0)
+
+                panel.focus()
+                panel.action_scroll_down()
+                for _ in range(20):
+                    if panel.scroll_y > 0:
+                        break
+                    await pilot.pause()
+                self.assertGreater(panel.scroll_y, 0)
+                self.assertEqual(pane.scroll_y, 0)
+
     async def test_statistics_tab_renders_and_scrolls_inside_its_page(self) -> None:
         """The charts refresh on activation and own their vertical scrolling."""
         with tempfile.TemporaryDirectory() as directory:

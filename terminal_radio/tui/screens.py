@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shlex
 from typing import Literal
 from collections.abc import Callable
 
@@ -37,7 +38,7 @@ class GoodbyeScreen(Screen[None]):
     def compose(self) -> ComposeResult:
         """Lay out the logo, the farewell and the time listened."""
         with Vertical(id="goodbye"):
-            yield LogoBlock(scale=2, id="goodbye-logo")
+            yield LogoBlock(scale=1, rainbow=True, id="goodbye-logo")
             yield Static(self.t("goodbye.title"), id="goodbye-title")
             yield Static(
                 self.t("goodbye.listened", duration=format_clock(self._listened)),
@@ -137,13 +138,20 @@ class UpdateScreen(ModalScreen[bool]):
             if not self._installation.upgradable:
                 # Nothing here can replace a copy it did not install, so it says
                 # so plainly rather than running a command that may be wrong.
+                hint = self.t(
+                    "update.by_hand_checkout"
+                    if self._installation.editable
+                    else "update.by_hand"
+                )
+                if self._installation.manual_command:
+                    hint += "\n\n" + self.t(
+                        "update.command",
+                        command=shlex.join(self._installation.manual_command),
+                    )
                 yield Static(
-                    self.t(
-                        "update.by_hand_checkout"
-                        if self._installation.editable
-                        else "update.by_hand"
-                    ),
+                    hint,
                     id="update-hint",
+                    markup=False,
                 )
             with Horizontal(id="update-actions"):
                 yield Button(self.t("update.later"), id="update-later", compact=True)
