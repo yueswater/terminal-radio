@@ -1,11 +1,17 @@
 name: Publish
 
-# Publishing by hand: a tag pushed from a terminal, or a rehearsal against
-# TestPyPI. The automated path lives in release.yml, which carries its own copy
-# of these steps because PyPI's trusted publishing refuses a reusable workflow.
+# Publishing by hand: a rehearsal against TestPyPI, or a release the automated
+# path could not finish. That path lives in release.yml, which carries its own
+# copy of these steps because PyPI's trusted publishing refuses a reusable
+# workflow.
+#
+# Deliberately started by hand only. A tag trigger here would be a second
+# automatic route to the index alongside release.yml, and the two would race on
+# a version that can only be uploaded once. It would also be a route that
+# rarely fires: a tag pushed by release-please carries GITHUB_TOKEN, and GitHub
+# does not start workflows from those, so it would only ever catch a tag pushed
+# from somebody's terminal.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       target:
@@ -40,16 +46,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      # Only a tag claims a version number, so only a tag has to agree with one.
-      - name: Check that the tag matches the project version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          version=$(uv version --short)
-          tag="${GITHUB_REF_NAME#v}"
-          if [ "$version" != "$tag" ]; then
-            echo "tag $tag does not match version $version in pyproject.toml" >&2
-            exit 1
-          fi
+      # Nothing here names a version but pyproject.toml, so there is nothing to
+      # disagree with. It is still worth saying out loud which one is going up,
+      # because this workflow is started by hand and can be aimed at any ref.
+      - name: Say which version is being published
+        run: echo "Publishing $(uv version --short) from ${GITHUB_REF_NAME}"
 
       - name: Build the wheel and the source distribution
         run: uv build
