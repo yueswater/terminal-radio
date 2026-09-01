@@ -288,6 +288,46 @@ class UpdateNoticeTests(unittest.TestCase):
 
         self.assertEqual(asked.call_count, 2)
 
+    def test_upgrading_lets_the_next_release_be_announced(self) -> None:
+        """The count is spent against a version, not against the listener.
+
+        Somebody who declined three notices for 0.3.1, installed it anyway, and
+        then met 0.3.2 would otherwise never hear about it.
+        """
+        for _ in range(UPDATE_NOTICE_LIMIT):
+            self._check(current="0.3.0", latest="0.3.1")
+            self.service.record_update_notice()
+        self.assertIsNone(self._check(current="0.3.0", latest="0.3.1"))
+
+        announced = self._check(current="0.3.1", latest="0.3.2")
+
+        self.assertEqual(announced, "0.3.2")
+
+    def test_catching_up_asks_the_index_again_the_same_day(self) -> None:
+        """The cached answer was recorded for a version no longer running."""
+        with patch(
+            "terminal_radio.services.radio.latest_release", return_value="0.3.1"
+        ):
+            self.service.check_for_update("0.3.0", now=1000.0)
+
+        with patch(
+            "terminal_radio.services.radio.latest_release", return_value="0.3.2"
+        ) as asked:
+            answer = self.service.check_for_update("0.3.1", now=1001.0)
+
+        self.assertEqual(asked.call_count, 1)
+        self.assertEqual(answer, "0.3.2")
+
+    def test_being_up_to_date_still_asks_only_once_a_day(self) -> None:
+        """Catching up is a reason to re-check, not to check on every launch."""
+        with patch(
+            "terminal_radio.services.radio.latest_release", return_value="0.3.2"
+        ) as asked:
+            for _ in range(4):
+                self.service.check_for_update("0.3.1", now=1000.0)
+
+        self.assertEqual(asked.call_count, 1)
+
     def test_the_check_can_be_turned_off(self) -> None:
         service = self._service(check_for_updates=False)
 

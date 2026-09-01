@@ -425,7 +425,13 @@ class RadioService:
         latest = stored.update_latest_version
         count = stored.update_notice_count
 
-        if self._update_check_is_stale(stored, moment):
+        # Catching up with what the index last offered makes the answer stale
+        # whatever the clock says: it was recorded for a version that is no
+        # longer the one running, and the release after it is the interesting
+        # one. Waiting out the day here is how an upgrade hides the next
+        # release for a day.
+        caught_up = latest is not None and not is_newer(latest, current_version)
+        if caught_up or self._update_check_is_stale(stored, moment):
             fetched = latest_release(distribution)
             if fetched is not None:
                 # A version they have not been told about is a fresh notice.
@@ -440,6 +446,13 @@ class RadioService:
             # rather than waiting out the day.
 
         if latest is None or not is_newer(latest, current_version):
+            # Nothing to say, and if the listener has caught up with what the
+            # index last offered then the times they were told about it are
+            # spent. Otherwise a listener who declined three notices, upgraded,
+            # and met the next release would never hear about it: the count
+            # only means anything against a version they have not installed.
+            if count and latest is not None and not is_newer(latest, current_version):
+                self._state.update(update_notice_count=0)
             return None
         if count >= UPDATE_NOTICE_LIMIT:
             return None
