@@ -69,15 +69,52 @@ make unlink    # remove it again
 radio                     # terminal interface
 radio ui --no-autoplay    # do not resume the last station at startup
 radio api                 # HTTP API; docs at http://127.0.0.1:8000/docs
-radio stations --band AM
 radio --help
 ```
 
 Without installing, use `make run`, `make api` or `uv run radio ...`.
 
+## Command line control
+
+The radio can be driven without opening the interface at all.
+
+```sh
+radio play news98
+radio pause / radio resume / radio stop
+radio status
+radio status --json      # for scripts: radio status --json | jq -r .program
+radio volume 50          # an absolute level
+radio volume +10         # a step
+radio mute / radio unmute
+radio sleep 30           # stop after thirty minutes
+radio sleep off
+radio now                # the station and title on air right now
+radio now-playing        # everything they have announced
+```
+
+**One process owns the player.** It holds a lock file and listens on a unix
+socket in the runtime directory. Two owners would mean two audio streams and
+two writers of the same state file, so the second one is refused.
+
+The owner is started for you: `radio play` with nothing running launches a
+headless one in the background, and a headless owner with nothing playing and
+nobody asking stands down after five minutes. When the terminal interface is
+open it is the owner, so `radio play` typed in another window drives the radio
+already on screen rather than starting a second one.
+
+```sh
+radio daemon             # run one in the foreground
+radio daemon status      # report which process owns the player
+radio daemon stop        # ask it to shut down
+```
+
+Every control command is an HTTP request over that socket, which is the same
+application `radio api` serves over a port. The socket is created readable only
+by the user who started it.
+
 ## Terminal interface
 
-The tabs include **Home**, FM, AM, **Favorites**, **History**, **Statistics**, **Themes**, **Settings** and **About**. Every launch starts on Home, even when the app resumes the last station. The bottom bar shows the playback state, frequency, station, program title, elapsed time, audio output, sleep timer and volume. Click the playback state at the bottom left to pause or resume. The output device name is limited to fifteen characters. By default, the last station resumes at startup.
+The tabs include **Home**, FM, AM, **Favorites**, **History**, **Tracks**, **Statistics**, **Themes**, **Settings** and **About**. Every launch starts on Home, even when the app resumes the last station. The bottom bar shows the playback state, frequency, station, program title, elapsed time, audio output, sleep timer and volume. Click the playback state at the bottom left to pause or resume. The output device name is limited to fifteen characters. By default, the last station resumes at startup.
 
 | Key | Action |
 | --- | --- |
@@ -96,7 +133,12 @@ The tabs include **Home**, FM, AM, **Favorites**, **History**, **Statistics**, *
 | `w` | Switch between English and Traditional Chinese |
 | `/` | Search all built-in and custom stations |
 | `?` | Open the keyboard shortcut guide |
-| `q` | Quit |
+| `q` | Quit, fading the sound out across the farewell |
+
+Leaving fades the sound down over `RADIO_GOODBYE_SECONDS` rather than cutting
+it off, across the same moment the farewell is on screen. The level you chose is
+untouched by the fade, so the next run starts where you left it. Set the
+duration to zero to leave at once.
 
 ## Scrolling
 
@@ -110,18 +152,28 @@ Favorites, volume, mute, autoplay, reconnect, station checks, language, the last
 
 | File | Contents |
 | --- | --- |
-| `app/data/stations.toml` | Station slug, name, band, frequency and stream URL |
+| `app/data/stations.toml` | Station identity, classification and stream addresses |
 | `app/data/themes.yml` | All color palettes and the default theme |
 | `app/data/locales/*.yml` | English and Traditional Chinese interface text |
 | `app/tui/radio.tcss` | Terminal interface layout |
 | `<state>/history.jsonl` | Listening history, with one JSON event per line |
+| `<state>/now-playing.jsonl` | Titles the stations announced, one per line |
 | `<state>/state.json` | Favorites, volume, mute, autoplay, animations, language, station and theme |
 | `<state>/custom-stations.toml` | Stations added from the Settings page |
+| `<runtime>/control.sock` | Socket every command reaches the owner on |
+| `<runtime>/control.lock` | Claim on the player, held by the owner |
 
 `<state>` is the per-user directory the program writes to, outside the
 installation, so upgrading or reinstalling never loses a history:
 `~/Library/Application Support/terminal-radio` on macOS and
 `~/.local/state/terminal-radio` on Linux. `RADIO_DATA_DIR` overrides it.
+
+`<runtime>` holds only what a running radio needs and nothing that should
+outlive a restart: `$XDG_RUNTIME_DIR/terminal-radio`, or a per-user
+directory under the system temporary directory. It is deliberately not the
+state directory, because a unix socket path is capped near a hundred bytes
+and the state directory alone is most of that budget on macOS.
+`RADIO_RUNTIME_DIR` overrides it.
 
 The bundled catalogue, themes and locales are read-only. To use your own without
 touching the installation, drop a `stations.toml`, `themes.yml` or `locales/`
@@ -137,8 +189,19 @@ name = "Example FM"
 band = "FM"
 frequency = "99.9"
 description = "Optional description"
+
+network = "Example Network"       # optional, groups a family of frequencies
+regions = ["taipei"]              # optional, where it is mainly heard
+genres = ["news", "talk"]         # optional, what it broadcasts
+languages = ["zh-Hant"]           # optional, BCP 47 tags
+
 url = "https://example.com/live/playlist.m3u8"
+fallback_urls = []                # optional, tried in turn when the first goes quiet
 ```
+
+`regions` and `genres` are closed sets: their values are the ones listed in
+`terminal_radio/enums/station.py`, and anything else is a load error rather than
+a station nobody can find.
 
 ## Audio output
 
@@ -190,6 +253,68 @@ Press `i` to search the same folders for `.radio.config` files, listed from newe
 
 The app only applies the `preferences` section. The `settings` section records the environment at the time of export, so its paths and commands belong to the original device and are not transferred during import. Files with an invalid format or the wrong value types are rejected. Stations that no longer exist are also removed from favorites and the last-played record.
 
+## Finding a station
+
+Press `/` anywhere, or click the search icon at the right of the tab bar. The
+same query grammar works there, on the command line and over HTTP:
+
+```sh
+radio stations "genre:news region:taipei"
+radio stations "genre:news genre:talk"    # the same key widens
+radio stations --genre classical --json
+```
+
+Filters are `genre:`, `region:`, `lang:`, `network:` and `band:`. Terms naming
+different keys narrow the result; terms naming the same key widen it. Anything
+that is not a filter is free text, ranked so a dial you typed in full comes
+before the same digits inside somebody's description.
+
+Every station also records the family it belongs to, where it is mainly heard,
+what it broadcasts and the languages it is heard in. Those are language neutral
+codes in the catalog and translated names on screen. See the comments at the
+top of `terminal_radio/data/stations.toml`.
+
+## Backup streams
+
+A station may list `fallback_urls` beside its `url`. The first address is
+always tried first. When a stream goes quiet the existing reconnect delays are
+unchanged, but each retry moves to the next address in turn. Whichever one
+works is then kept, rather than switching back and interrupting the sound; the
+primary is tried again the next time the station is asked for. The bottom bar
+shows a quiet badge only while a backup is carrying the sound.
+
+A station counts as online when any one of its addresses answers, and the
+health check stops at the first that does.
+
+## Track log
+
+The station is asked for its current title outright when playback starts,
+rather than waiting for playback to reach the first metadata block, which puts
+the title on screen with the sound instead of two seconds behind it. A title
+too long for its slot slides along; turn that off from **Settings** or with
+`RADIO_SCROLL_TITLES=0`.
+
+Only a few stations publish titles at all. Of the bundled catalogue three do,
+and the rest send station identity but no track information, over ICY and over
+HLS alike.
+
+While a radio is running, the titles the stations announce are written to
+`<state>/now-playing.jsonl`. This is the station's timeline, kept apart from
+the listening history, which is the listener's. The same title is not recorded
+twice in a row, so a reconnect does not duplicate a song, and entries older
+than `RADIO_NOW_PLAYING_RETENTION_DAYS` days (30 by default) are dropped as the
+log grows.
+
+The **Tracks** tab lists the same thing on screen, newest first, with
+buttons to export it as CSV or clear it.
+
+```sh
+radio now                        # just what is on right now
+radio now-playing --limit 10
+radio now-playing --station icrt
+radio now-playing --json
+```
+
 ## Listening history
 
 Each session start, session end, play, pause and resume is written to `<state>/history.jsonl` with timing data. A `play_ended` event records the total elapsed, paused and interrupted time. Listening time excludes both pauses and reconnect interruptions. The table always uses `HH:MM:SS`.
@@ -202,7 +327,7 @@ The **Statistics** page reads the complete valid history and draws terminal char
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/stations?band=FM&q=police` | List stations, optionally filtered by band or search text |
+| GET | `/stations?q=genre:news region:taipei` | List stations, filtered and ranked |
 | GET | `/stations/{slug}` | Get one station |
 | GET | `/player` | Get playback state, program title and timers |
 | POST | `/player/play` | Play a station |
@@ -210,8 +335,12 @@ The **Statistics** page reads the complete valid history and draws terminal char
 | POST | `/player/pause` | Pause playback |
 | POST | `/player/resume` | Resume playback |
 | POST | `/player/stop` | Stop playback |
+| POST | `/player/volume` | Set an absolute level, or move by a step |
+| POST | `/player/mute` | Silence the output, or bring it back |
+| POST | `/player/sleep` | Stop playback after a number of minutes |
 | GET | `/history` | Get recent listening events |
 | GET | `/history/summary` | Get listening totals for each station |
+| GET | `/history/now-playing` | Get the titles the stations announced |
 | GET | `/themes` | List available themes |
 
 ## Contributing and security

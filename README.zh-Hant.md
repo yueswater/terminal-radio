@@ -68,15 +68,50 @@ make unlink    # 移除
 radio                     # 終端機介面
 radio ui --no-autoplay    # 啟動時不要續播上次的電台
 radio api                 # HTTP API，文件在 http://127.0.0.1:8000/docs
-radio stations --band AM
 radio --help
 ```
 
 不安裝也能用 `make run`、`make api` 或 `uv run radio ...` 執行。
 
+## 命令列操控
+
+不開介面也能操控整台收音機。
+
+```sh
+radio play news98
+radio pause / radio resume / radio stop
+radio status
+radio status --json      # 給腳本用：radio status --json | jq -r .program
+radio volume 50          # 絕對音量
+radio volume +10         # 相對調整
+radio mute / radio unmute
+radio sleep 30           # 三十分鐘後停止
+radio sleep off
+radio now                # 現在正在播的電台和曲目
+radio now-playing        # 播報過的完整紀錄
+```
+
+**播放器只能有一個擁有者。**它會持有一個鎖檔，並在執行期目錄的 unix socket 上
+接收指令。兩個擁有者代表兩條音訊串流、兩個搶著寫同一份狀態檔的程序，所以第二個
+會被拒絕。
+
+擁有者會自動啟動：沒有任何程序在跑時執行 `radio play`，會在背景開一個無介面的
+擁有者；而無介面的擁有者若沒在播放、也沒人下指令，五分鐘後會自行退場。終端機
+介面開著時它就是擁有者，所以在另一個視窗打 `radio play` 會操控畫面上那台收音機，
+而不是另外開一台。
+
+```sh
+radio daemon             # 在前景執行一個
+radio daemon status      # 顯示是哪個程序擁有播放器
+radio daemon stop        # 請它關閉
+```
+
+每個操控指令都是走那個 socket 的 HTTP 請求，跟 `radio api` 用連接埠對外提供的是
+同一套應用程式。socket 的權限只開給啟動它的使用者。
+
 ## 終端機介面
 
-分頁包括**首頁**、FM、AM、**我的最愛**、**收聽紀錄**、**聆聽統計**、**佈景主題**、**設定**和**關於**。每次啟動都先回首頁，即使程式同時續播了上次的電台。底部狀態列會顯示播放狀態、頻率、電台、節目名稱、播放時間、音訊輸出、睡眠計時和音量；點左下角的播放狀態即可暫停或繼續。輸出裝置名稱最多顯示十五個字元。預設會在啟動時續播上次的電台。
+分頁包括**首頁**、FM、AM、**我的最愛**、**收聽紀錄**、**曲目紀錄**、**聆聽統計**、**佈景主題**、**設定**和**關於**。每次啟動都先回首頁，即使程式同時續播了上次的電台。底部狀態列會顯示播放狀態、頻率、電台、節目名稱、播放時間、音訊輸出、睡眠計時和音量；點左下角的播放狀態即可暫停或繼續。輸出裝置名稱最多顯示十五個字元。預設會在啟動時續播上次的電台。
 
 | 按鍵 | 動作 |
 | --- | --- |
@@ -95,7 +130,11 @@ radio --help
 | `w` | 切換英文／繁體中文 |
 | `/` | 搜尋內建與自訂電台 |
 | `?` | 開啟鍵盤快捷鍵說明 |
-| `q` | 離開 |
+| `q` | 離開，並在告別畫面期間把聲音淡出 |
+
+離開時聲音會在 `RADIO_GOODBYE_SECONDS` 的時間內淡出，而不是硬切，剛好就是告別畫面
+停留的那一刻。淡出不會動到你設定的音量，所以下次開機還是原本的大小。把時間設成 0
+就直接離開。
 
 ## 捲動
 
@@ -109,17 +148,25 @@ radio --help
 
 | 檔案 | 內容 |
 | --- | --- |
-| `app/data/stations.toml` | 電台代號、名稱、頻段、頻率和串流網址 |
+| `app/data/stations.toml` | 電台識別、分類與串流位址 |
 | `app/data/themes.yml` | 所有配色及預設主題 |
 | `app/data/locales/*.yml` | 英文與繁體中文介面文字 |
 | `app/tui/radio.tcss` | 終端機介面版面 |
 | `<狀態目錄>/history.jsonl` | 收聽紀錄，每個事件一列 JSON |
+| `<狀態目錄>/now-playing.jsonl` | 各台播報過的曲目，每筆一列 |
 | `<狀態目錄>/state.json` | 我的最愛、音量、靜音、自動播放、動畫、語言、電台和主題 |
 | `<狀態目錄>/custom-stations.toml` | 從設定頁新增的自訂電台 |
+| `<執行期目錄>/control.sock` | 所有指令送達擁有者的 socket |
+| `<執行期目錄>/control.lock` | 播放器的所有權，由擁有者持有 |
 
 `<狀態目錄>` 是程式寫入的個人目錄，位於安裝目錄之外，升級或重裝都不會遺失紀錄：
 macOS 為 `~/Library/Application Support/terminal-radio`，Linux 為
 `~/.local/state/terminal-radio`。可用 `RADIO_DATA_DIR` 覆寫。
+
+`<執行期目錄>` 只放執行中的收音機需要、且不該撐過重開機的東西：
+`$XDG_RUNTIME_DIR/terminal-radio`，或系統暫存目錄底下的個人目錄。刻意不放在
+狀態目錄，因為 unix socket 路徑上限接近一百個位元組，而在 macOS 上光是狀態
+目錄就佔掉大半。可用 `RADIO_RUNTIME_DIR` 覆寫。
 
 內建的電台清單、佈景主題與語言檔是唯讀的。想用自己的版本又不動到安裝目錄，
 可以把 `stations.toml`、`themes.yml` 或 `locales/` 放進設定目錄——macOS 為
@@ -135,8 +182,19 @@ name = "Example FM"
 band = "FM"
 frequency = "99.9"
 description = "選填說明"
+
+network = "Example Network"       # 選填，把同一家的多個頻率歸在一起
+regions = ["taipei"]              # 選填，主要收聽區域
+genres = ["news", "talk"]         # 選填，播送內容
+languages = ["zh-Hant"]           # 選填，BCP 47 語言標籤
+
 url = "https://example.com/live/playlist.m3u8"
+fallback_urls = []                # 選填，主要位址沒聲音時依序接手
 ```
+
+`regions` 和 `genres` 是封閉集合，可用的值列在
+`terminal_radio/enums/station.py`；填了以外的值會在載入時直接報錯，而不是變成一個
+永遠搜不到的電台。
 
 ## 音訊輸出
 
@@ -187,6 +245,57 @@ Radio 可檢查串流是否正常、緩慢或離線。自動檢查結果會快�
 按 `i` 會在相同資料夾裡尋找 `.radio.config`，並依新到舊列出。匯入後會還原自訂電台、我的最愛、音量、靜音、主題、語言、自動播放、斷線重連、電台檢查和動畫，所有頁面也會立即更新。舊版檔案沒有 `custom_stations` 也能照常匯入。
 
 程式只會套用 `preferences`。`settings` 用來記錄匯出當下的執行環境，其中的路徑和指令屬於原裝置，不會直接搬移。格式錯誤或值的型別不符時會拒絕匯入；已不存在的電台也不會留在我的最愛或上次播放紀錄中。
+
+## 找電台
+
+在任何地方按 `/`，或點分頁列右邊的搜尋圖示。同一套查詢語法在介面、命令列和 HTTP
+上都通用：
+
+```sh
+radio stations "genre:news region:taipei"
+radio stations "genre:news genre:talk"    # 同一個 key 會放寬
+radio stations --genre classical --json
+```
+
+篩選條件有 `genre:`、`region:`、`lang:`、`network:` 和 `band:`。不同 key 之間是
+交集，同一個 key 之間是聯集。不是篩選條件的字就當作自由文字，排序上會讓完整打出
+的頻率排在「說明裡剛好有那幾個數字」的電台前面。
+
+每個電台還會記錄所屬聯播網、主要收聽區域、播送內容和語言。這些在資料檔裡是語言
+中立的代碼，在畫面上才翻成名稱。詳見 `terminal_radio/data/stations.toml` 開頭的
+註解。
+
+## 備援串流
+
+電台可以在 `url` 旁邊列出 `fallback_urls`。第一個位址永遠先試。串流斷掉時，原本
+的重連延遲完全不變，只是每次重試會輪到下一個位址。之後就留在能用的那個，不會為
+了回到主要位址而再中斷一次聲音；下次主動點播該電台時才會重新從主要位址開始。只有
+在備援位址撐著的時候，底部狀態列才會出現一個低調的標記。
+
+只要任一個位址有回應，該電台就算上線，健康檢查也會在第一個有回應的位址就停下來。
+
+## 曲目紀錄
+
+開始播放時會直接向電台索取現在的曲目，不必等播放進度走到第一個 metadata block，
+所以曲目跟聲音幾乎同時出現，而不是慢兩秒。太長的曲目會跑馬燈捲動；不想要的話可以
+在**設定**關掉，或用 `RADIO_SCROLL_TITLES=0`。
+
+會發布曲目的電台其實不多。內建清單裡有三台會送，其餘的不論走 ICY 或 HLS，都只送
+電台名稱、不送曲目。
+
+收音機執行期間，各台播報的曲目會寫進 `<狀態目錄>/now-playing.jsonl`。這是**電台的**
+時間軸，和屬於**聽眾的**收聽紀錄分開存放。同一個曲名不會連續寫兩次，所以重連不會
+讓同一首歌變成兩筆；超過 `RADIO_NOW_PLAYING_RETENTION_DAYS` 天（預設 30 天）的
+資料會隨著檔案成長被清掉。
+
+**曲目紀錄**分頁會把同樣的內容顯示在畫面上，最新的在最前面，並附匯出 CSV 和清除兩顆按鈕。
+
+```sh
+radio now                        # 只看現在播什麼
+radio now-playing --limit 10
+radio now-playing --station icrt
+radio now-playing --json
+```
 
 ## 收聽紀錄
 
