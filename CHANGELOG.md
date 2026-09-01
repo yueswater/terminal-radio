@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/yueswater/terminal-radio/compare/v0.3.0...v0.3.1) (2026-09-01)
+
+
+### Features
+
+* offer the update when a newer release is out ([57980b3](https://github.com/yueswater/terminal-radio/commit/57980b3aeef39709f781980383c9fd8b079b4a7b))
+
+
+### Packaging
+
+* carry the version into the lock file ([91f1ec1](https://github.com/yueswater/terminal-radio/commit/91f1ec14d33469b0da8cc3c661adde8321311b67))
+
 ## [0.3.0](https://github.com/yueswater/terminal-radio/compare/v0.2.0...v0.3.0) (2026-09-01)
 
 
