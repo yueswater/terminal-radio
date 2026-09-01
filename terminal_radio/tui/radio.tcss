@@ -84,6 +84,14 @@ TabPane {
     align-horizontal: right;
 }
 
+/* Said quietly, because an empty track log is the ordinary state: most
+   stations announce nothing at all. */
+#now-playing-empty {
+    height: 1;
+    text-align: center;
+    color: $text-muted;
+}
+
 #clear-history, #export-history, #reset-settings, #clear-now-playing,
 #export-now-playing {
     min-width: 18;

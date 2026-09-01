@@ -181,6 +181,7 @@ class RadioApp(App[None]):
                 yield Static("", classes="table-action-spacer")
                 with Container(classes="centered-table-shell"):
                     yield NowPlayingTable(self.t, id="now-playing-log")
+                yield Static("", id="now-playing-empty")
                 with Horizontal(id="now-playing-actions"):
                     yield Button(
                         self.t("now_playing.export"),
@@ -367,10 +368,18 @@ class RadioApp(App[None]):
         self.query_one(HistoryTable).show(self._service.summaries())
 
     def refresh_now_playing(self) -> None:
-        """Reload the programme table from the announcement log."""
+        """Reload the track table from the announcement log."""
         tables = self.query(NowPlayingTable)
-        if tables:
-            tables.first().show(self._service.now_playing(NOW_PLAYING_TABLE_LIMIT))
+        if not tables:
+            return
+
+        entries = self._service.now_playing(NOW_PLAYING_TABLE_LIMIT)
+        tables.first().show(entries)
+        # Most stations announce nothing at all, so an empty table is the
+        # ordinary state here rather than a sign that something is broken.
+        notes = self.query("#now-playing-empty")
+        if notes:
+            notes.first().update("" if entries else self.t("now_playing.empty"))
 
     def refresh_statistics(self) -> None:
         """Rebuild every listening chart from the complete history."""
