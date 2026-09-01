@@ -5,7 +5,12 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
+from terminal_radio.constants.about import DISTRIBUTION
 from terminal_radio.constants.config import DEFAULT_DATA_DIR
+from terminal_radio.constants.update import (
+    UPDATE_CHECK_INTERVAL_SECONDS,
+    UPDATE_NOTICE_LIMIT,
+)
 from terminal_radio.core.config import Settings, get_settings
 from terminal_radio.core.exceptions import CatalogError, PlayerError, StationNotFoundError
 from terminal_radio.enums import Band, HistoryEventType, PlaybackState
@@ -23,6 +28,7 @@ from terminal_radio.services.sleep_timer import SleepTimer
 from terminal_radio.services.state import PersistedState, StateStore
 from terminal_radio.services.station_library import StationLibrary
 from terminal_radio.services.station_search import search_stations
+from terminal_radio.services.update import is_newer, latest_release
 from terminal_radio.services.station_health import StationHealthService, StationHealthSnapshot
 
 
@@ -45,6 +51,7 @@ class RadioService:
         station_library: StationLibrary | None = None,
         auto_health_check: bool = True,
         station_health: StationHealthService | None = None,
+        check_for_updates: bool = True,
         now_playing: NowPlayingLog | None = None,
     ) -> None:
         self._catalog = catalog
@@ -81,6 +88,7 @@ class RadioService:
             if stored.auto_health_check is None
             else stored.auto_health_check
         )
+        self._check_for_updates = check_for_updates
         self._favorites = list(stored.favorites)
         self._player.set_volume(stored.volume)
         self._player.set_muted(stored.muted)
@@ -395,6 +403,64 @@ class RadioService:
         self._auto_health_check = enabled
         self._state.update(auto_health_check=enabled)
         return self._auto_health_check
+
+    def check_for_update(
+        self,
+        current_version: str,
+        *,
+        now: float | None = None,
+        distribution: str = DISTRIBUTION,
+    ) -> str | None:
+        """Return a newer release worth announcing, or None.
+
+        Asks the index at most once a day and remembers the answer, so opening
+        the radio several times in an evening is one request. Callers run this
+        off the interface thread: it may wait on the network.
+        """
+        if not self._check_for_updates:
+            return None
+
+        moment = time.time() if now is None else now
+        stored = self._state.load()
+        latest = stored.update_latest_version
+        count = stored.update_notice_count
+
+        if self._update_check_is_stale(stored, moment):
+            fetched = latest_release(distribution)
+            if fetched is not None:
+                # A version they have not been told about is a fresh notice.
+                count = count if fetched == latest else 0
+                latest = fetched
+                self._state.update(
+                    update_latest_version=fetched,
+                    update_checked_at=moment,
+                    update_notice_count=count,
+                )
+            # A failed request records nothing, so the next launch tries again
+            # rather than waiting out the day.
+
+        if latest is None or not is_newer(latest, current_version):
+            return None
+        if count >= UPDATE_NOTICE_LIMIT:
+            return None
+        return latest
+
+    @staticmethod
+    def _update_check_is_stale(stored: PersistedState, moment: float) -> bool:
+        """Return whether the index should be asked again."""
+        if stored.update_latest_version is None or stored.update_checked_at is None:
+            return True
+        return moment - stored.update_checked_at >= UPDATE_CHECK_INTERVAL_SECONDS
+
+    def record_update_notice(self) -> int:
+        """Count one showing of the update notice and return the new total.
+
+        Counted when the notice is shown rather than when it is dismissed, so
+        that closing the window on it still uses one of the three.
+        """
+        shown = self._state.load().update_notice_count + 1
+        self._state.update(update_notice_count=shown)
+        return shown
 
     def station_health(self, slug: str) -> StationHealthSnapshot:
         """Return the current non-blocking health snapshot for one station."""
@@ -776,4 +842,5 @@ def build_radio_service(settings: Settings | None = None) -> RadioService:
         auto_reconnect=settings.auto_reconnect,
         station_library=library,
         auto_health_check=settings.auto_health_check,
+        check_for_updates=settings.check_for_updates,
     )

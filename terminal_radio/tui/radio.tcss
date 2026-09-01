@@ -208,6 +208,48 @@ DataTable > .datatable--cursor {
     color: $warning;
 }
 
+/* Update notice. Sized and spaced like the confirmation dialog, because it
+   asks the same kind of question. */
+UpdateScreen {
+    align: center middle;
+    background: $background 70%;
+}
+
+#update-dialog {
+    width: auto;
+    max-width: 70;
+    height: auto;
+    padding: 1 3;
+    background: $surface;
+    border: round $primary;
+}
+
+#update-title {
+    text-style: bold;
+    color: $foreground;
+}
+
+#update-versions {
+    color: $text-muted;
+    margin-top: 1;
+}
+
+#update-hint {
+    color: $text-muted;
+    margin-top: 1;
+}
+
+#update-actions {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
+}
+
+#update-later, #update-now {
+    min-width: 14;
+    margin-left: 1;
+}
+
 ConfirmationScreen {
     align: center middle;
     background: $background 70%;

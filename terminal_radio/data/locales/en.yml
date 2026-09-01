@@ -133,6 +133,15 @@ messages:
   notify.favorite_removed: "Removed {name} from favorites"
 
   history.clear: Clear listening history
+  update.title: Version {version} is out
+  update.versions: You have {current} · latest is {latest}
+  update.later: Later
+  update.now: Update now
+  update.by_hand: This copy was not installed by a package manager, so update it the way you installed it.
+  update.by_hand_checkout: This copy runs from a checkout, so update it with git.
+  update.upgrading: Updating to {version}...
+  update.upgraded: Updated. Run radio again to use it.
+  update.upgrade_failed: "Could not update. Run this yourself: {command}"
   now_playing.clear: Clear tracks
   now_playing.export: Export CSV
   now_playing.export_title: Export the track log to

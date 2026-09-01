@@ -223,18 +223,49 @@ def _run_ui(settings: Settings, no_autoplay: bool) -> int:
     except OSError:
         pass
 
+    app = RadioApp(
+        service=service,
+        themes=ThemeRepository.from_file(settings.themes_file),
+        locales=LocaleRepository.from_directory(
+            settings.locales_dir, settings.locale
+        ),
+        settings=settings,
+    )
     try:
-        RadioApp(
-            service=service,
-            themes=ThemeRepository.from_file(settings.themes_file),
-            locales=LocaleRepository.from_directory(
-                settings.locales_dir, settings.locale
-            ),
-            settings=settings,
-        ).run()
+        app.run()
     finally:
         unlink_socket(settings.control_socket)
         lock.release()
+
+    # After the lock, because the upgrade replaces the files this process is
+    # running from and the next radio needs the socket free.
+    if app.pending_upgrade is not None:
+        return _run_upgrade(app.pending_upgrade, app.upgrade_version, app.t)
+    return 0
+
+
+def _run_upgrade(
+    command: tuple[str, ...], version: str | None, translator: object
+) -> int:
+    """Replace this installation, showing the command and its output."""
+    import subprocess
+
+    t = translator
+    print(t("update.upgrading", version=version or ""))  # type: ignore[operator]
+    print(f"  $ {' '.join(command)}")
+    try:
+        completed = subprocess.run(command, check=False)
+    except OSError:
+        completed = None
+
+    if completed is None or completed.returncode != 0:
+        print(
+            t("update.upgrade_failed", command=" ".join(command)),  # type: ignore[operator]
+            file=sys.stderr,
+        )
+        return 1
+
+    print(t("update.upgraded"))  # type: ignore[operator]
     return 0
 
 

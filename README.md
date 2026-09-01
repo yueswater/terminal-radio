@@ -74,6 +74,26 @@ radio --help
 
 Without installing, use `make run`, `make api` or `uv run radio ...`.
 
+## Staying up to date
+
+Opening the radio asks the index, at most once a day, whether a newer release
+exists. When there is one you are told, and offered the update if this copy was
+installed by a package manager it can drive — `uv tool` or `pipx`. Choosing it
+closes the radio and runs the upgrade, because a program cannot replace the
+files it is running from.
+
+Saying **Later** brings the notice back next time, three times in all, and then
+it stops until a version you have not been told about appears. A copy running
+from a checkout is never offered an upgrade, only told that one exists. Set
+`RADIO_CHECK_FOR_UPDATES=0` to ask nothing, ever.
+
+Upgrading by hand, whichever way it was installed:
+
+```sh
+uv tool upgrade radiotui-tw
+pipx upgrade radiotui-tw
+```
+
 ## Command line control
 
 The radio can be driven without opening the interface at all.

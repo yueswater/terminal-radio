@@ -18,6 +18,7 @@ from terminal_radio.constants.tui import SHORTCUT_HELP
 from terminal_radio.enums import Band, StationHealth
 from terminal_radio.models import Station
 from terminal_radio.services import export_filename
+from terminal_radio.services.update import Installation
 from terminal_radio.tui.formatting import format_clock, format_path
 from terminal_radio.tui.widgets import LogoBlock, StationTable
 
@@ -101,6 +102,67 @@ class ShortcutHelpScreen(ModalScreen[None]):
 
     def action_close(self) -> None:
         self.dismiss(None)
+
+
+class UpdateScreen(ModalScreen[bool]):
+    """Tells the listener a newer release exists, and offers to fetch it."""
+
+    BINDINGS = [Binding("escape", "cancel", "Cancel", show=False)]
+
+    # Later takes the keyboard: a listener who opened the radio to listen
+    # should not upgrade it by leaning on enter.
+    AUTO_FOCUS = "#update-later"
+
+    def __init__(
+        self,
+        translator: Translator,
+        current: str,
+        latest: str,
+        installation: Installation,
+    ) -> None:
+        super().__init__()
+        self.t = translator
+        self._current = current
+        self._latest = latest
+        self._installation = installation
+
+    def compose(self) -> ComposeResult:
+        """Lay out the versions, and whatever this copy can be told to do."""
+        with Vertical(id="update-dialog"):
+            yield Static(self.t("update.title", version=self._latest), id="update-title")
+            yield Static(
+                self.t("update.versions", current=self._current, latest=self._latest),
+                id="update-versions",
+            )
+            if not self._installation.upgradable:
+                # Nothing here can replace a copy it did not install, so it says
+                # so plainly rather than running a command that may be wrong.
+                yield Static(
+                    self.t(
+                        "update.by_hand_checkout"
+                        if self._installation.editable
+                        else "update.by_hand"
+                    ),
+                    id="update-hint",
+                )
+            with Horizontal(id="update-actions"):
+                yield Button(self.t("update.later"), id="update-later", compact=True)
+                if self._installation.upgradable:
+                    yield Button(
+                        self.t("update.now"),
+                        variant="primary",
+                        id="update-now",
+                        compact=True,
+                    )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Return whether the listener asked for the upgrade."""
+        event.stop()
+        self.dismiss(event.button.id == "update-now")
+
+    def action_cancel(self) -> None:
+        """Close the notice without upgrading."""
+        self.dismiss(False)
 
 
 class SleepTimerScreen(ModalScreen[int | Literal["off"] | None]):

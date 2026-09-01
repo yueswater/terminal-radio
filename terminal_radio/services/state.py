@@ -22,6 +22,12 @@ class PersistedState(BaseModel):
     auto_reconnect: bool | None = None
     auto_health_check: bool | None = None
     locale: str | None = None
+    # What the index last said, when it was asked, and how many times the
+    # listener has been told. The count starts again at a version they have
+    # not been told about.
+    update_latest_version: str | None = None
+    update_checked_at: float | None = None
+    update_notice_count: int = Field(default=0, ge=0)
 
 
 class StateStore:

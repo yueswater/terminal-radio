@@ -13,6 +13,7 @@ from textual.timer import Timer
 from textual.widgets import Button, Static, TabbedContent, TabPane
 
 from terminal_radio.core.config import Settings, get_settings
+from terminal_radio.constants.about import DISTRIBUTION
 from terminal_radio.constants.tui import (
     ABOUT_TAB,
     COMPACT_WIDTH,
@@ -28,6 +29,7 @@ from terminal_radio.constants.tui import (
     VOLUME_STEP,
     WIDE_WIDTH,
 )
+from terminal_radio.core.about import get_version
 from terminal_radio.core.exceptions import RadioError
 from terminal_radio.core.i18n import LocaleRepository, Translator
 from terminal_radio.enums import Band, StationHealth
@@ -45,6 +47,7 @@ from terminal_radio.services import (
     write_now_playing_csv,
     StationHealthSnapshot,
 )
+from terminal_radio.services.update import Installation, describe_installation
 from terminal_radio.tui.formatting import format_duration, format_path
 from terminal_radio.tui.screens import (
     ConfirmationScreen,
@@ -56,6 +59,7 @@ from terminal_radio.tui.screens import (
     SleepTimerScreen,
     StationSearchScreen,
     ShortcutHelpScreen,
+    UpdateScreen,
 )
 from terminal_radio.tui.theming import register_themes, resolve_theme_name
 from terminal_radio.tui.widgets import (
@@ -116,6 +120,11 @@ class RadioApp(App[None]):
         self._locales = locales
         self._settings = settings or get_settings()
         self._status_timer: Timer | None = None
+        # Filled in when the listener asks to upgrade. The interface cannot
+        # replace the files it is running from, so it leaves the command for
+        # whoever started it to run once it has gone.
+        self.pending_upgrade: tuple[str, ...] | None = None
+        self.upgrade_version: str | None = None
         self.t: Translator = locales.translator(service.locale_code())
         self.apply_animations(service.animations)
 
@@ -238,6 +247,8 @@ class RadioApp(App[None]):
         self._status_timer = self.set_interval(
             self._settings.status_refresh_seconds, self.sync_status
         )
+        if not self.is_headless:
+            self.look_for_update()
 
     def on_unmount(self) -> None:
         """Stop the timer and close the listening session when the UI goes away."""
@@ -339,6 +350,42 @@ class RadioApp(App[None]):
             stations = self.stations_for_pane(event.pane.id or "")
             if stations:
                 self.begin_station_health_check(stations, force=False, announce=False)
+
+    @work(thread=True, group="update-check", exclusive=True, exit_on_error=False)
+    def look_for_update(self) -> None:
+        """Ask the index for a newer release, off the interface thread."""
+        current = get_version()
+        latest = self._service.check_for_update(current)
+        if latest is None:
+            return
+        try:
+            self.call_from_thread(self.offer_update, current, latest)
+        except RuntimeError:
+            # The interface went away while the index was answering.
+            return
+
+    def offer_update(self, current: str, latest: str) -> None:
+        """Tell the listener about a release, at most three times in all."""
+        self._service.record_update_notice()
+        self.push_screen(
+            UpdateScreen(
+                self.t, current, latest, describe_installation(DISTRIBUTION)
+            ),
+            lambda accepted: self.finish_update_offer(latest, accepted),
+        )
+
+    def finish_update_offer(self, latest: str, accepted: bool) -> None:
+        """Leave, so that the shell can replace the files this is running from."""
+        if not accepted:
+            return
+
+        installation = describe_installation(DISTRIBUTION)
+        if not installation.upgradable:
+            return
+
+        self.pending_upgrade = installation.upgrade_command
+        self.upgrade_version = latest
+        self.action_quit()
 
     def refresh_favorites(self) -> None:
         """Reload the favorites tab from the starred stations."""

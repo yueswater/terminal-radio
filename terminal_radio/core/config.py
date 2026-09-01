@@ -47,6 +47,8 @@ class Settings(BaseModel):
     autoplay_last_station: bool = True
     auto_reconnect: bool = True
     auto_health_check: bool = True
+    # Asks the index, once a day, whether a newer release exists.
+    check_for_updates: bool = True
     # Off by default so interface changes stay immediate.
     enable_animations: bool = False
     # A title too long for its slot slides along instead of being cut.
@@ -135,6 +137,8 @@ def get_settings() -> Settings:
         overrides["auto_reconnect"] = reconnect
     if (health := _env_flag(f"{ENV_PREFIX}AUTO_HEALTH_CHECK")) is not None:
         overrides["auto_health_check"] = health
+    if (updates := _env_flag(f"{ENV_PREFIX}CHECK_FOR_UPDATES")) is not None:
+        overrides["check_for_updates"] = updates
     if (animations := _env_flag(f"{ENV_PREFIX}ENABLE_ANIMATIONS")) is not None:
         overrides["enable_animations"] = animations
     if (scroll := _env_flag(f"{ENV_PREFIX}SCROLL_TITLES")) is not None:

@@ -133,6 +133,15 @@ messages:
   notify.favorite_removed: "已將 {name} 移出我的最愛"
 
   history.clear: 清除收聽紀錄
+  update.title: 有新版本 {version}
+  update.versions: 目前 {current} · 最新 {latest}
+  update.later: 稍後再說
+  update.now: 立即更新
+  update.by_hand: 這份不是由套件管理工具安裝的，請用當初的方式自行更新。
+  update.by_hand_checkout: 這份是從原始碼安裝的，請用 git 更新。
+  update.upgrading: 正在更新到 {version}⋯
+  update.upgraded: 已更新，重新執行 radio 即可。
+  update.upgrade_failed: 更新失敗，請手動執行：{command}
   now_playing.clear: 清除曲目紀錄
   now_playing.export: 匯出 CSV
   now_playing.export_title: 匯出曲目紀錄到
