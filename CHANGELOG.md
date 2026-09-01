@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/yueswater/terminal-radio/compare/v0.3.1...v0.3.2) (2026-09-01)
+
+
+### Features
+
+* keep the history and track tables live while they are open ([8eca532](https://github.com/yueswater/terminal-radio/commit/8eca53264b1d4337ec533a7de7d92de5e94ed5e2))
+* rename the radio to Wavepick ([ed9a3e7](https://github.com/yueswater/terminal-radio/commit/ed9a3e7392c005bccc9e24653e3b7f4268cfcf80))
+
 ## [0.3.1](https://github.com/yueswater/terminal-radio/compare/v0.3.0...v0.3.1) (2026-09-01)
 
 
