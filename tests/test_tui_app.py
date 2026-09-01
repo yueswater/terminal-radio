@@ -796,7 +796,16 @@ class RadioAppTests(unittest.IsolatedAsyncioTestCase):
                 autoplay_last_station=False,
                 status_refresh_seconds=60,
             )
-            service = build_radio_service(settings)
+            # A stand-in backend, so the test needs neither mpv installed nor
+            # a live stream to reach: all it wants is one finished play to
+            # export.
+            service = RadioService(
+                catalog=StationCatalog.from_file(settings.stations_file),
+                player=MemoryPlayer(),
+                history=HistoryLog(settings.history_file),
+                state=StateStore(settings.state_file),
+                autoplay_last_station=False,
+            )
             station = service.list_stations(Band.FM)[0]
             service.play(station.slug)
             service.stop()
@@ -1122,6 +1131,38 @@ class ProgramTabTests(unittest.IsolatedAsyncioTestCase):
                 await pilot.pause()
 
                 self.assertEqual(table.row_count, 0)
+
+    async def test_an_empty_log_says_why_rather_than_looking_broken(self) -> None:
+        """Most stations announce nothing, so emptiness is the normal state."""
+        with tempfile.TemporaryDirectory() as directory:
+            app, _ = self._app(directory)
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+
+                note = str(app.query_one("#now-playing-empty", Static).render())
+
+                self.assertEqual(note, "還沒有電台報過曲目")
+
+    async def test_the_note_goes_away_once_something_is_recorded(self) -> None:
+        from terminal_radio.services import NowPlayingLog
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, service = self._app(directory)
+            settings = Settings(data_dir=Path(directory))
+            NowPlayingLog(settings.now_playing_file).record(
+                service.get_station("icrt"), "Coldplay - Yellow"
+            )
+
+            async with app.run_test(size=(160, 48)) as pilot:
+                app.query_one(TabbedContent).active = "tab-now-playing"
+                await pilot.pause()
+                await pilot.pause()
+
+                note = str(app.query_one("#now-playing-empty", Static).render())
+
+                self.assertEqual(note.strip(), "")
 
     async def test_the_headings_follow_the_interface_language(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
