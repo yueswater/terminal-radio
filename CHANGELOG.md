@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/yueswater/terminal-radio/compare/v0.3.3...v0.3.4) (2026-09-02)
+
+
+### Features
+
+* **theme:** add night-eaves palette ([5eff11b](https://github.com/yueswater/terminal-radio/commit/5eff11be8bb470dc9db85811c7630b86342cba35))
+
 ## [0.3.3](https://github.com/yueswater/terminal-radio/compare/v0.3.2...v0.3.3) (2026-09-01)
 
 
