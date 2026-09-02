@@ -185,3 +185,18 @@ themes:
     success: "#40a02b"
     warning: "#fe640b"
     error: "#d20f39"
+
+  # Deep indigo with an acid green drawn over it, the way a temple roof looks
+  # traced in light against a night sky.
+  - name: night-eaves
+    dark: true
+    primary: "#a2ed45"
+    secondary: "#7aa2ff"
+    accent: "#ffd166"
+    foreground: "#e9eaf7"
+    background: "#08085d"
+    surface: "#12126b"
+    panel: "#1c1c7e"
+    success: "#a2ed45"
+    warning: "#ffd166"
+    error: "#ff5d73"
